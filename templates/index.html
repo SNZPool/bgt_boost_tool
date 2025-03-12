@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <title>BGT Boost 监控</title>
+    <script>
+        function fetchStatus() {
+            fetch("/status")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("total").innerText = data.total_balance;
+                    document.getElementById("boosted").innerText = data.boost_balance;
+                    document.getElementById("queued").innerText = data.queued_balance;
+                    document.getElementById("free").innerText = data.free_balance;
+                });
+        }
+        setInterval(fetchStatus, 5000);
+    </script>
+</head>
+<body>
+    <h1>BGT Boost 监控</h1>
+    <p>总余额: <span id="total">加载中...</span></p>
+    <p>已 Boost: <span id="boosted">加载中...</span></p>
+    <p>Queue 中: <span id="queued">加载中...</span></p>
+    <p>可用余额: <span id="free">加载中...</span></p>
+</body>
+</html>
