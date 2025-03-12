@@ -59,8 +59,6 @@ def boost_loop():
                 if tx_hash:
                     print("✅ activate_boost", tx_hash.hex())
                     logging.info(f"✅ Activated Boost: {tx_hash.hex()}")
-            else:
-                print("⏳ Waiting for Activate Boost conditions...")
 
         # Check every Config.INTERVAL seconds
         time.sleep(Config.INTERVAL)
