@@ -1,10 +1,10 @@
 # BGT Boost Tool
 
 ## Overview
-The BGT Boost Tool is a web-based application that automates the process of managing BGT token boosts. It provides a simple web interface to monitor BGT statistics and manually control the boost activation process.
+The BGT Boost Tool is a application that automates the process of managing BGT token boosts. It provides a simple web interface to monitor BGT statistics.
 
 ## Features
-- **Web Interface**: Access the application through a web browser to view BGT statistics and control boost settings.
+- **Web Interface**: Access the application through a web browser to view BGT statistics.
 - **Automated Boost Management**: Automatically queues and activates boosts based on predefined conditions.
 - **Logging**: Records all boost-related transactions and activities for auditing purposes.
 
