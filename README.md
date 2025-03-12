@@ -31,6 +31,7 @@ The BGT Boost Tool is a web-based application that automates the process of mana
    ADDRESS=your_address
    PUBKEY=your_pubkey
    PORT=your_port
+   INTERVAL=periodic_interval
    ```
 
 4. **Run the application**:

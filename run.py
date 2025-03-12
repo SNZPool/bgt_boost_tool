@@ -62,8 +62,8 @@ def boost_loop():
             else:
                 print("⏳ Waiting for Activate Boost conditions...")
 
-        # Check every 30 seconds
-        time.sleep(30)
+        # Check every Config.INTERVAL seconds
+        time.sleep(Config.INTERVAL)
 
 if __name__ == "__main__":
     # Start Flask thread

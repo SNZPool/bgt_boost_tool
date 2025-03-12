@@ -12,3 +12,4 @@ class Config:
     PUBKEY = os.getenv("PUBKEY")
     LOG_FILE = "logs/boost.log"
     PORT = int(os.getenv("PORT",5010))
+    INTERVAL = int(os.getenv("INTERVAL",30))
