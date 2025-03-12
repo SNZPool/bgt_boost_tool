@@ -49,14 +49,14 @@ def boost_loop():
             if queued_balance == 0 and free_balance > 0:
                 tx_hash = queue_boost()
                 if tx_hash:
-                    print("✅ queue_boost", tx_hash.hex())
+                    print("✅ queue_boost", tx_hash.hex(), flush=True)
                     logging.info(f"✅ Queued Boost: {tx_hash.hex()}")
 
             # 2. Execute Activate Boost when conditions are met
             if can_activate_boost():
                 tx_hash = activate_boost()
                 if tx_hash:
-                    print("✅ activate_boost", tx_hash.hex())
+                    print("✅ activate_boost", tx_hash.hex(), flush=True)
                     logging.info(f"✅ Activated Boost: {tx_hash.hex()}")
 
         # Check every Config.INTERVAL seconds

@@ -88,7 +88,7 @@ def activate_boost():
         tx_hash: Transaction hash if successful, None if conditions not met
     """
     if not can_activate_boost():
-        print("⚠️  Activation conditions not met, skipping Activate Boost")
+        print("⚠️  Activation conditions not met, skipping Activate Boost", flush=True)
         return None
 
     tx = bgt_contract.functions.activateBoost(Config.ADDRESS, Config.PUBKEY).build_transaction({
