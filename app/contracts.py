@@ -78,6 +78,7 @@ def can_activate_boost():
     activate_boost_delay = bgt_contract.functions.activateBoostDelay().call()
 
     # Check if waiting time requirement is met
+    print("Waiting ", activate_boost_delay-current_block+block_number_last, " to activate queued BGT.")
     return current_block - block_number_last > activate_boost_delay
 
 def activate_boost():
