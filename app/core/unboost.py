@@ -213,17 +213,19 @@ class UnboostManager:
                 logging.info(f"✅ Executed Drop Boost: {tx_hash.hex()} for task: {task_id}")
                 print(f"✅ drop_boost: {tx_hash.hex()} for task: {task_id}", flush=True)
             else:
-                # 记录等待信息
-                drop_info = self.get_queued_drop_info()
-                blocks_remaining = drop_info["drop_blocks_remaining"]
-                if blocks_remaining > 0:
-                    db.log_event(task_id, "DROP_BOOST_WAITING", {
-                        "message": f"Waiting {blocks_remaining} blocks for drop boost conditions to be met"
-                    })
-                else:
-                    db.log_event(task_id, "DROP_BOOST_WAITING", {
-                        "message": "Waiting for drop boost conditions to be met"
-                    })
+                # 记录等待信息（仅在首次出现时记录）
+                last_log = db.get_last_task_log(task_id, "DROP_BOOST_WAITING")
+                if not last_log:
+                    drop_info = self.get_queued_drop_info()
+                    blocks_remaining = drop_info["drop_blocks_remaining"]
+                    if blocks_remaining > 0:
+                        db.log_event(task_id, "DROP_BOOST_WAITING", {
+                            "message": f"Waiting {blocks_remaining} blocks for drop boost conditions to be met"
+                        })
+                    else:
+                        db.log_event(task_id, "DROP_BOOST_WAITING", {
+                            "message": "Waiting for drop boost conditions to be met"
+                        })
 
 # 创建单例实例
-unboost_manager = UnboostManager() 
+unboost_manager = UnboostManager()
