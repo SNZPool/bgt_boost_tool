@@ -24,7 +24,6 @@ The BGT Boost Tool is a application that automates the process of managing BGT t
 3. **Configure environment variables**:
    Create a `.env` file in the root directory and set the following variables:
    ```
-   SECRET_KEY=your_secret_key
    RPC_URL=your_rpc_url
    BGT_CONTRACT_ADDRESS=your_contract_address
    PRIVATE_KEY=your_private_key
