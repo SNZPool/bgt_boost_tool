@@ -1,26 +1,1183 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <title>BGT Boost 监控</title>
-    <script>
-        function fetchStatus() {
-            fetch("/status")
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("total").innerText = data.total_balance;
-                    document.getElementById("boosted").innerText = data.boost_balance;
-                    document.getElementById("queued").innerText = data.queued_balance;
-                    document.getElementById("free").innerText = data.free_balance;
-                });
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGT Boost 管理面板</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #f8f9fa;
+            padding-top: 20px;
         }
-        setInterval(fetchStatus, 5000);
-    </script>
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            font-weight: bold;
+            background-color: #f1f8ff;
+        }
+        .status-badge {
+            font-size: 0.9rem;
+            padding: 0.35em 0.65em;
+            margin-left: 10px;
+        }
+        .status-card {
+            background-color: #e9f7fe;
+            border-left: 4px solid #3498db;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .data-row:last-child {
+            border-bottom: none;
+        }
+        .data-label {
+            font-weight: 500;
+            color: #555;
+        }
+        .data-value {
+            font-weight: 600;
+        }
+        .nav-tabs {
+            margin-bottom: 15px;
+        }
+        #runningMode {
+            font-weight: bold;
+        }
+        .observation-mode {
+            color: #fd7e14;
+        }
+        .execution-mode {
+            color: #20c997;
+        }
+        .task-status-pending { color: #ffc107; }
+        .task-status-queued { color: #17a2b8; }
+        .task-status-waiting_for_activation { color: #6f42c1; }
+        .task-status-active { color: #007bff; }
+        .task-status-completed { color: #28a745; }
+        .task-status-failed { color: #dc3545; }
+        #loadingSpinner {
+            display: none;
+            width: 2rem;
+            height: 2rem;
+        }
+    </style>
 </head>
 <body>
-    <h1>BGT Boost 监控</h1>
-    <p>总余额: <span id="total">加载中...</span></p>
-    <p>已 Boost: <span id="boosted">加载中...</span></p>
-    <p>Queue 中: <span id="queued">加载中...</span></p>
-    <p>可用余额: <span id="free">加载中...</span></p>
+    <div class="container">
+        <header class="d-flex justify-content-between align-items-center mb-4">
+            <h1>BGT Boost 管理面板</h1>
+            <div>
+                <span>运行模式：</span>
+                <span id="runningMode" class="observation-mode">加载中...</span>
+            </div>
+        </header>
+
+        <div class="row">
+            <!-- 状态卡片 -->
+            <div class="col-md-4">
+                <div class="card status-card">
+                    <div class="card-header d-flex justify-content-between">
+                        <span>BGT 状态</span>
+                        <span class="refresh-time text-muted small">更新时间: <span id="lastUpdate">-</span></span>
+                    </div>
+                    <div class="card-body">
+                        <div class="data-row">
+                            <span class="data-label">总余额</span>
+                            <span class="data-value" id="total">加载中...</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">已Boost</span>
+                            <span class="data-value" id="boosted">加载中...</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">可用余额</span>
+                            <span class="data-value" id="free">加载中...</span>
+                        </div>
+                        <div class="data-row border-top pt-2 mt-2">
+                            <span class="data-label fw-bold">Queue Boost信息</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">已排队</span>
+                            <span class="data-value" id="queuedBoost">加载中...</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">激活条件</span>
+                            <span class="data-value" id="boostActivateInfo">加载中...</span>
+                        </div>
+                        <div class="data-row border-top pt-2 mt-2">
+                            <span class="data-label fw-bold">Queue Drop信息</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">已排队取消</span>
+                            <span class="data-value" id="queuedDrop">加载中...</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">取消条件</span>
+                            <span class="data-value" id="dropActivateInfo">加载中...</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">Boost Worker</span>
+                            <div>
+                                <span class="data-value" id="boostWorkerStatus">未知</span>
+                                <button class="btn btn-sm btn-outline-primary" onclick="toggleBoostWorker()">切换</button>
+                            </div>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">Task Processor</span>
+                            <div>
+                                <span class="data-value" id="taskProcessorStatus">未知</span>
+                                <button class="btn btn-sm btn-outline-primary" onclick="toggleTaskProcessor()">切换</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">奖励信息</div>
+                    <div class="card-body">
+                        <div class="data-row">
+                            <span class="data-label">已赚取奖励</span>
+                            <span class="data-value" id="earnedRewards">加载中...</span>
+                        </div>
+                        <div class="mt-3" id="claimRewardSection">
+                            <button class="btn btn-success w-100" onclick="claimRewards()">Claim 奖励</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="col-md-8">
+                <ul class="nav nav-tabs" id="dataTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab">待处理任务</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">历史记录</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="statistics-tab" data-bs-toggle="tab" data-bs-target="#statistics" type="button" role="tab">统计数据</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="api-debug-tab" data-bs-toggle="tab" data-bs-target="#api-debug" type="button" role="tab">API调试</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- 待处理任务 -->
+                    <div class="tab-pane fade show active" id="tasks" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>待处理任务</span>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="fetchTasks()">刷新</button>
+                            </div>
+                            <div class="card-body">
+                                <div id="noTasksMessage" class="text-center text-muted my-4">暂无待处理任务</div>
+                                <div id="tasksTable" style="display: none;">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>任务ID</th>
+                                                    <th>类型</th>
+                                                    <th>金额</th>
+                                                    <th>状态</th>
+                                                    <th>操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tasksList">
+                                                <!-- 任务数据将在这里动态填充 -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 任务详情模态框 -->
+                        <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">任务详情</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="task-details mb-4">
+                                            <h6>基本信息</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <tbody id="taskDetailInfo">
+                                                        <!-- 任务详情将在这里动态填充 -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        <div class="task-events">
+                                            <h6>事件日志</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>时间</th>
+                                                            <th>事件</th>
+                                                            <th>数据</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="taskEventsList">
+                                                        <!-- 事件日志将在这里动态填充 -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 历史记录 -->
+                    <div class="tab-pane fade" id="history" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header">历史操作记录</div>
+                            <div class="card-body">
+                                <div id="noHistoryMessage" class="text-center text-muted my-4">暂无历史记录</div>
+                                <div id="historyTable" style="display: none;">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>任务ID</th>
+                                                    <th>类型</th>
+                                                    <th>金额</th>
+                                                    <th>接收者</th>
+                                                    <th>状态</th>
+                                                    <th>完成时间</th>
+                                                    <th>操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="historyList">
+                                                <!-- 历史数据将在这里动态填充 -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <nav>
+                                        <ul class="pagination justify-content-center" id="historyPagination">
+                                            <!-- 分页控件将在这里动态填充 -->
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 统计数据 -->
+                    <div class="tab-pane fade" id="statistics" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header">操作统计</div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-5">
+                                        <input type="date" id="startDate" class="form-control" placeholder="开始日期">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <input type="date" id="endDate" class="form-control" placeholder="结束日期">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-primary w-100" onclick="fetchStatistics()">查询</button>
+                                    </div>
+                                </div>
+                                <div id="noStatsMessage" class="text-center text-muted my-4">暂无统计数据</div>
+                                <div id="statisticsData" style="display: none;">
+                                    <h6>总计</h6>
+                                    <div class="row mb-4">
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center">
+                                                    <h3 id="totalBoosted">0</h3>
+                                                    <p class="mb-0">总Boost量</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center">
+                                                    <h3 id="totalUnboosted">0</h3>
+                                                    <p class="mb-0">总Unboost量</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center">
+                                                    <h3 id="totalRedeemed">0</h3>
+                                                    <p class="mb-0">总Redeem量</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <h6>每日数据</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>日期</th>
+                                                    <th>Boost</th>
+                                                    <th>Unboost</th>
+                                                    <th>Redeem</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="statisticsList">
+                                                <!-- 统计数据将在这里动态填充 -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API调试 -->
+                    <div class="tab-pane fade" id="api-debug" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header">API调试控制台</div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <select class="form-select" id="apiEndpointSelect">
+                                            <option value="">选择API端点...</option>
+                                            <optgroup label="状态操作">
+                                                <option value="GET:/status">GET /status - 获取BGT状态</option>
+                                                <option value="POST:/toggle_boost">POST /toggle_boost - 切换Boost Worker</option>
+                                                <option value="POST:/toggle_task_processor">POST /toggle_task_processor - 切换Task Processor</option>
+                                            </optgroup>
+                                            <optgroup label="任务操作">
+                                                <option value="POST:/unboost_redeem">POST /unboost_redeem - 创建Unboost任务</option>
+                                                <option value="GET:/tasks">GET /tasks - 获取所有待处理任务</option>
+                                                <option value="GET:/tasks/:id">GET /tasks/:id - 获取任务详情</option>
+                                            </optgroup>
+                                            <optgroup label="历史与统计">
+                                                <option value="GET:/history">GET /history - 获取历史记录</option>
+                                                <option value="GET:/statistics">GET /statistics - 获取操作统计</option>
+                                            </optgroup>
+                                            <optgroup label="奖励相关">
+                                                <option value="GET:/rewards/earned">GET /rewards/earned - 获取已赚取奖励</option>
+                                                <option value="POST:/rewards/claim">POST /rewards/claim - Claim奖励</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div id="apiParamsSection" class="mb-3" style="display: none;">
+                                    <h6>请求参数</h6>
+                                    <div id="urlParamsSection" class="mb-3" style="display: none;">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h6 class="card-title">URL参数</h6>
+                                                <div id="urlParamsContainer">
+                                                    <!-- URL参数会动态添加在这里 -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="requestBodySection" class="mb-3" style="display: none;">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h6 class="card-title">请求体</h6>
+                                                <div class="mb-3">
+                                                    <textarea class="form-control" id="requestBodyEditor" rows="5" placeholder='{"key": "value"}'></textarea>
+                                                </div>
+                                                <div class="form-text">输入JSON格式的请求体</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary" id="sendRequestBtn" type="button">发送请求</button>
+                                    </div>
+                                </div>
+                                
+                                <div id="apiResponseSection" class="mt-4" style="display: none;">
+                                    <h6>响应</h6>
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <div>
+                                                    状态: <span id="responseStatus" class="fw-bold"></span>
+                                                </div>
+                                                <div>
+                                                    耗时: <span id="responseTime" class="fw-bold"></span>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="responseHeadersEditor" class="form-label">响应头</label>
+                                                <textarea class="form-control" id="responseHeadersEditor" rows="3" readonly></textarea>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="responseBodyEditor" class="form-label">响应体</label>
+                                                <textarea class="form-control" id="responseBodyEditor" rows="10" readonly></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作控制面板 -->
+        <div class="card mt-4">
+            <div class="card-header">Unboost and Redeem 操作</div>
+            <div class="card-body">
+                <form id="unboostRedeemForm" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="unboostAmount" class="form-label">Unboost金额</label>
+                        <input type="number" class="form-control" id="unboostAmount" placeholder="输入BGT数量" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="receiverAddress" class="form-label">接收BERA的地址</label>
+                        <input type="text" class="form-control" id="receiverAddress" placeholder="0x..." required>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100" id="submitButton">提交</button>
+                    </div>
+                </form>
+                <div class="mt-3">
+                    <div class="alert alert-success d-none" id="successAlert">
+                        操作已提交成功，任务ID: <span id="createdTaskId"></span>
+                    </div>
+                    <div class="alert alert-danger d-none" id="errorAlert">
+                        操作失败: <span id="errorMessage"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="my-3 d-flex justify-content-center">
+            <div class="spinner-border text-primary" id="loadingSpinner" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+        </div>
+
+        <footer class="mt-5 mb-3 text-center text-muted">
+            <small>BGT Boost Tool &copy; 2023</small>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 实用功能
+        function showSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'inline-block';
+        }
+
+        function hideSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        function formatDateTime(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleString('zh-CN');
+        }
+
+        function formatTaskStatus(status) {
+            const statusMap = {
+                'pending': '待处理',
+                'queued': '已排队',
+                'waiting_for_activation': '等待激活',
+                'active': '活跃中',
+                'completed': '已完成',
+                'failed': '失败'
+            };
+            const statusClass = `task-status-${status}`;
+            return `<span class="${statusClass}">${statusMap[status] || status}</span>`;
+        }
+
+        function formatTaskType(type) {
+            const typeMap = {
+                'boost': 'Boost',
+                'unboost': 'Unboost',
+                'redeem': 'Redeem'
+            };
+            return typeMap[type] || type;
+        }
+
+        function formatAmount(amount) {
+            return parseFloat(amount).toFixed(4);
+        }
+
+        // API接口调用
+        async function fetchData(url, options = {}) {
+            showSpinner();
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || '请求失败');
+                }
+                return await response.json();
+            } catch (error) {
+                console.error(`Error fetching ${url}:`, error);
+                throw error;
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        // 状态信息
+        async function fetchStatus() {
+            try {
+                const data = await fetchData('/status');
+                
+                // 更新BGT信息
+                document.getElementById('total').innerText = formatAmount(data.total_balance);
+                document.getElementById('boosted').innerText = formatAmount(data.boost_balance);
+                document.getElementById('free').innerText = formatAmount(data.free_balance);
+                
+                // 更新Queue Boost信息
+                document.getElementById('queuedBoost').innerText = formatAmount(data.queued_balance);
+                
+                let boostActivateText = '未排队';
+                if (data.queued_balance > 0) {
+                    if (data.can_activate) {
+                        boostActivateText = `<span class="text-success">可激活</span>`;
+                    } else {
+                        boostActivateText = `等待中 (${data.boost_blocks_elapsed}/${data.boost_delay_blocks}块)`;
+                    }
+                }
+                document.getElementById('boostActivateInfo').innerHTML = boostActivateText;
+                
+                // 更新Queue Drop信息
+                document.getElementById('queuedDrop').innerText = formatAmount(data.queued_drop_amount);
+                
+                let dropActivateText = '未排队';
+                if (data.queued_drop_amount > 0) {
+                    if (data.can_drop) {
+                        dropActivateText = `<span class="text-success">可执行</span>`;
+                    } else {
+                        dropActivateText = `等待中 (${data.drop_blocks_elapsed}/${data.drop_delay_blocks}块)`;
+                    }
+                }
+                document.getElementById('dropActivateInfo').innerHTML = dropActivateText;
+                
+                // 更新区块信息
+                document.getElementById('lastUpdate').innerHTML = 
+                    `${new Date().toLocaleTimeString()} <small class="text-muted">(区块: ${data.block_number})</small>`;
+                
+                // 更新运行模式
+                const modeElem = document.getElementById('runningMode');
+                modeElem.innerText = data.mode;
+                if (data.mode === '观察模式') {
+                    modeElem.className = 'observation-mode';
+                    document.getElementById('claimRewardSection').style.display = 'none';
+                    document.getElementById('submitButton').disabled = true;
+                    document.getElementById('submitButton').title = '在观察模式下不能执行操作';
+                } else {
+                    modeElem.className = 'execution-mode';
+                    document.getElementById('claimRewardSection').style.display = 'block';
+                    document.getElementById('submitButton').disabled = false;
+                    document.getElementById('submitButton').title = '';
+                }
+            } catch (error) {
+                console.error('获取状态失败:', error);
+            }
+        }
+
+        // 任务管理
+        async function fetchTasks() {
+            try {
+                const data = await fetchData('/tasks');
+                const tasksList = document.getElementById('tasksList');
+                const noTasksMessage = document.getElementById('noTasksMessage');
+                const tasksTable = document.getElementById('tasksTable');
+                
+                if (data.tasks && data.tasks.length > 0) {
+                    tasksList.innerHTML = '';
+                    data.tasks.forEach(task => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${task.task_id.substring(0, 8)}...</td>
+                            <td>${formatTaskType(task.task_type)}</td>
+                            <td>${formatAmount(task.amount)}</td>
+                            <td>${formatTaskStatus(task.status)}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info" onclick="viewTaskDetail('${task.task_id}')">
+                                    详情
+                                </button>
+                            </td>
+                        `;
+                        tasksList.appendChild(row);
+                    });
+                    noTasksMessage.style.display = 'none';
+                    tasksTable.style.display = 'block';
+                } else {
+                    noTasksMessage.style.display = 'block';
+                    tasksTable.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('获取任务失败:', error);
+            }
+        }
+
+        async function viewTaskDetail(taskId) {
+            try {
+                const data = await fetchData(`/tasks/${taskId}`);
+                const taskDetailInfo = document.getElementById('taskDetailInfo');
+                const taskEventsList = document.getElementById('taskEventsList');
+                
+                // 填充任务基本信息
+                const task = data.task;
+                taskDetailInfo.innerHTML = `
+                    <tr><th>任务ID</th><td>${task.task_id}</td></tr>
+                    <tr><th>类型</th><td>${formatTaskType(task.task_type)}</td></tr>
+                    <tr><th>金额</th><td>${formatAmount(task.amount)}</td></tr>
+                    <tr><th>接收者</th><td>${task.receiver}</td></tr>
+                    <tr><th>状态</th><td>${formatTaskStatus(task.status)}</td></tr>
+                    <tr><th>创建时间</th><td>${formatDateTime(task.created_at)}</td></tr>
+                    <tr><th>更新时间</th><td>${formatDateTime(task.updated_at)}</td></tr>
+                `;
+                
+                if (task.queue_tx_hash) {
+                    taskDetailInfo.innerHTML += `<tr><th>队列交易哈希</th><td>${task.queue_tx_hash}</td></tr>`;
+                }
+                
+                if (task.activate_tx_hash) {
+                    taskDetailInfo.innerHTML += `<tr><th>激活交易哈希</th><td>${task.activate_tx_hash}</td></tr>`;
+                }
+                
+                if (task.redeem_tx_hash) {
+                    taskDetailInfo.innerHTML += `<tr><th>赎回交易哈希</th><td>${task.redeem_tx_hash}</td></tr>`;
+                }
+                
+                // 填充事件日志
+                taskEventsList.innerHTML = '';
+                if (data.events && data.events.length > 0) {
+                    data.events.forEach(event => {
+                        const row = document.createElement('tr');
+                        let eventData = '-';
+                        if (event.data) {
+                            try {
+                                const dataObj = JSON.parse(event.data);
+                                eventData = Object.entries(dataObj)
+                                    .map(([key, value]) => `${key}: ${value}`)
+                                    .join('<br>');
+                            } catch (e) {
+                                eventData = event.data;
+                            }
+                        }
+                        
+                        row.innerHTML = `
+                            <td>${formatDateTime(event.timestamp)}</td>
+                            <td>${event.event_type}</td>
+                            <td>${eventData}</td>
+                        `;
+                        taskEventsList.appendChild(row);
+                    });
+                } else {
+                    taskEventsList.innerHTML = '<tr><td colspan="3" class="text-center">暂无事件日志</td></tr>';
+                }
+                
+                // 显示模态框
+                const taskDetailModal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+                taskDetailModal.show();
+                
+            } catch (error) {
+                console.error('获取任务详情失败:', error);
+            }
+        }
+
+        // 历史记录
+        let currentPage = 1;
+        let totalPages = 1;
+        
+        async function fetchHistory(page = 1) {
+            try {
+                const data = await fetchData(`/history?page=${page}&limit=10`);
+                const historyList = document.getElementById('historyList');
+                const noHistoryMessage = document.getElementById('noHistoryMessage');
+                const historyTable = document.getElementById('historyTable');
+                
+                if (data.history && data.history.length > 0) {
+                    historyList.innerHTML = '';
+                    data.history.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.task_id.substring(0, 8)}...</td>
+                            <td>${formatTaskType(item.task_type)}</td>
+                            <td>${formatAmount(item.amount)}</td>
+                            <td>${item.receiver.substring(0, 8)}...</td>
+                            <td>${formatTaskStatus(item.status)}</td>
+                            <td>${formatDateTime(item.updated_at)}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info" onclick="viewTaskDetail('${item.task_id}')">
+                                    详情
+                                </button>
+                            </td>
+                        `;
+                        historyList.appendChild(row);
+                    });
+                    
+                    // 更新分页
+                    currentPage = data.page;
+                    totalPages = data.pages;
+                    updatePagination();
+                    
+                    noHistoryMessage.style.display = 'none';
+                    historyTable.style.display = 'block';
+                } else {
+                    noHistoryMessage.style.display = 'block';
+                    historyTable.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('获取历史记录失败:', error);
+            }
+        }
+        
+        function updatePagination() {
+            const pagination = document.getElementById('historyPagination');
+            pagination.innerHTML = '';
+            
+            // 上一页
+            const prevItem = document.createElement('li');
+            prevItem.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevItem.innerHTML = `
+                <a class="page-link" href="#" onclick="fetchHistory(${currentPage - 1}); return false;">
+                    上一页
+                </a>
+            `;
+            pagination.appendChild(prevItem);
+            
+            // 页码
+            for (let i = 1; i <= totalPages; i++) {
+                const pageItem = document.createElement('li');
+                pageItem.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageItem.innerHTML = `
+                    <a class="page-link" href="#" onclick="fetchHistory(${i}); return false;">
+                        ${i}
+                    </a>
+                `;
+                pagination.appendChild(pageItem);
+            }
+            
+            // 下一页
+            const nextItem = document.createElement('li');
+            nextItem.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextItem.innerHTML = `
+                <a class="page-link" href="#" onclick="fetchHistory(${currentPage + 1}); return false;">
+                    下一页
+                </a>
+            `;
+            pagination.appendChild(nextItem);
+        }
+
+        // 统计数据
+        async function fetchStatistics() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            try {
+                const url = `/statistics?${startDate ? 'start_date=' + startDate : ''}${endDate ? '&end_date=' + endDate : ''}`;
+                const data = await fetchData(url);
+                
+                const noStatsMessage = document.getElementById('noStatsMessage');
+                const statisticsData = document.getElementById('statisticsData');
+                const statisticsList = document.getElementById('statisticsList');
+                
+                if (data.statistics && data.statistics.length > 0) {
+                    // 更新总计数据
+                    document.getElementById('totalBoosted').innerText = formatAmount(data.summary.total_boosted);
+                    document.getElementById('totalUnboosted').innerText = formatAmount(data.summary.total_unboosted);
+                    document.getElementById('totalRedeemed').innerText = formatAmount(data.summary.total_redeemed);
+                    
+                    // 更新每日数据
+                    statisticsList.innerHTML = '';
+                    data.statistics.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.date}</td>
+                            <td>${formatAmount(item.total_boosted)}</td>
+                            <td>${formatAmount(item.total_unboosted)}</td>
+                            <td>${formatAmount(item.total_redeemed)}</td>
+                        `;
+                        statisticsList.appendChild(row);
+                    });
+                    
+                    noStatsMessage.style.display = 'none';
+                    statisticsData.style.display = 'block';
+                } else {
+                    noStatsMessage.style.display = 'block';
+                    statisticsData.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('获取统计数据失败:', error);
+            }
+        }
+
+        // 奖励相关
+        async function fetchEarnedRewards() {
+            try {
+                const data = await fetchData('/rewards/earned');
+                document.getElementById('earnedRewards').innerText = formatAmount(data.earned);
+            } catch (error) {
+                console.error('获取奖励失败:', error);
+                document.getElementById('earnedRewards').innerText = '获取失败';
+            }
+        }
+        
+        async function claimRewards() {
+            try {
+                const data = await fetchData('/rewards/claim', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({recipient: null})
+                });
+                
+                alert(`奖励Claim成功！交易哈希: ${data.tx_hash}`);
+                // 刷新奖励数据
+                fetchEarnedRewards();
+            } catch (error) {
+                alert(`奖励Claim失败: ${error.message}`);
+            }
+        }
+
+        // 工作器控制
+        async function toggleBoostWorker() {
+            try {
+                const response = await fetchData('/toggle_boost', {
+                    method: 'POST'
+                });
+                
+                document.getElementById('boostWorkerStatus').innerText = 
+                    response.boost_enabled ? '已启用' : '已禁用';
+            } catch (error) {
+                console.error('切换Boost工作器状态失败:', error);
+            }
+        }
+        
+        async function toggleTaskProcessor() {
+            try {
+                const response = await fetchData('/toggle_task_processor', {
+                    method: 'POST'
+                });
+                
+                document.getElementById('taskProcessorStatus').innerText = 
+                    response.task_processor_enabled ? '已启用' : '已禁用';
+            } catch (error) {
+                console.error('切换任务处理器状态失败:', error);
+            }
+        }
+
+        // Unboost和Redeem操作
+        document.getElementById('unboostRedeemForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const amount = document.getElementById('unboostAmount').value;
+            const receiver = document.getElementById('receiverAddress').value;
+            
+            const successAlert = document.getElementById('successAlert');
+            const errorAlert = document.getElementById('errorAlert');
+            
+            try {
+                const data = await fetchData('/unboost_redeem', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({amount, receiver})
+                });
+                
+                document.getElementById('createdTaskId').innerText = data.task_id;
+                successAlert.classList.remove('d-none');
+                errorAlert.classList.add('d-none');
+                
+                // 清空表单
+                document.getElementById('unboostRedeemForm').reset();
+                
+                // 刷新任务列表
+                setTimeout(fetchTasks, 1000);
+                
+            } catch (error) {
+                document.getElementById('errorMessage').innerText = error.message;
+                errorAlert.classList.remove('d-none');
+                successAlert.classList.add('d-none');
+            }
+        });
+
+        // 页面加载和选项卡切换
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始加载数据
+            fetchStatus();
+            fetchTasks();
+            fetchEarnedRewards();
+            
+            // 定时刷新状态
+            setInterval(fetchStatus, 10000);
+            
+            // 选项卡事件监听
+            document.getElementById('history-tab').addEventListener('click', function() {
+                fetchHistory();
+            });
+            
+            document.getElementById('statistics-tab').addEventListener('click', function() {
+                fetchStatistics();
+            });
+            
+            // 设置当前日期作为默认结束日期
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            document.getElementById('endDate').value = todayStr;
+            
+            // 30天前作为默认开始日期
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('startDate').value = thirtyDaysAgoStr;
+            
+            // API调试页面初始化
+            initApiDebugPage();
+        });
+        
+        // API调试页面功能
+        function initApiDebugPage() {
+            const apiEndpointSelect = document.getElementById('apiEndpointSelect');
+            const apiParamsSection = document.getElementById('apiParamsSection');
+            const urlParamsSection = document.getElementById('urlParamsSection');
+            const urlParamsContainer = document.getElementById('urlParamsContainer');
+            const requestBodySection = document.getElementById('requestBodySection');
+            const sendRequestBtn = document.getElementById('sendRequestBtn');
+            const apiResponseSection = document.getElementById('apiResponseSection');
+            
+            // 端点定义，包含参数说明
+            const endpointDefs = {
+                'GET:/status': {
+                    needsBody: false,
+                    urlParams: []
+                },
+                'POST:/toggle_boost': {
+                    needsBody: false,
+                    urlParams: []
+                },
+                'POST:/toggle_task_processor': {
+                    needsBody: false,
+                    urlParams: []
+                },
+                'POST:/unboost_redeem': {
+                    needsBody: true,
+                    bodyTemplate: {
+                        amount: 0.1,
+                        receiver: "0x1234567890abcdef1234567890abcdef12345678"
+                    },
+                    urlParams: []
+                },
+                'GET:/tasks': {
+                    needsBody: false,
+                    urlParams: []
+                },
+                'GET:/tasks/:id': {
+                    needsBody: false,
+                    urlParams: [
+                        {name: 'id', description: '任务ID', example: 'task_12345abcde'}
+                    ]
+                },
+                'GET:/history': {
+                    needsBody: false,
+                    urlParams: [
+                        {name: 'page', description: '页码', example: '1'},
+                        {name: 'limit', description: '每页条数', example: '10'}
+                    ]
+                },
+                'GET:/statistics': {
+                    needsBody: false,
+                    urlParams: [
+                        {name: 'start_date', description: '开始日期 (YYYY-MM-DD)', example: '2023-01-01'},
+                        {name: 'end_date', description: '结束日期 (YYYY-MM-DD)', example: '2023-12-31'}
+                    ]
+                },
+                'GET:/rewards/earned': {
+                    needsBody: false,
+                    urlParams: [
+                        {name: 'account', description: '账户地址 (可选)', example: '0x1234567890abcdef1234567890abcdef12345678'}
+                    ]
+                },
+                'POST:/rewards/claim': {
+                    needsBody: true,
+                    bodyTemplate: {
+                        recipient: null
+                    },
+                    urlParams: []
+                }
+            };
+            
+            // 端点选择改变事件
+            apiEndpointSelect.addEventListener('change', function() {
+                const selectedValue = apiEndpointSelect.value;
+                if (!selectedValue) {
+                    apiParamsSection.style.display = 'none';
+                    return;
+                }
+                
+                const endpointDef = endpointDefs[selectedValue];
+                if (!endpointDef) {
+                    apiParamsSection.style.display = 'none';
+                    return;
+                }
+                
+                // 显示参数部分
+                apiParamsSection.style.display = 'block';
+                
+                // 处理URL参数
+                if (endpointDef.urlParams && endpointDef.urlParams.length > 0) {
+                    urlParamsSection.style.display = 'block';
+                    urlParamsContainer.innerHTML = '';
+                    
+                    endpointDef.urlParams.forEach(param => {
+                        const paramDiv = document.createElement('div');
+                        paramDiv.className = 'mb-3';
+                        paramDiv.innerHTML = `
+                            <label for="param-${param.name}" class="form-label">${param.name}</label>
+                            <input type="text" class="form-control" id="param-${param.name}" 
+                                   placeholder="${param.description} (例如: ${param.example})" 
+                                   data-param-name="${param.name}">
+                        `;
+                        urlParamsContainer.appendChild(paramDiv);
+                    });
+                } else {
+                    urlParamsSection.style.display = 'none';
+                }
+                
+                // 处理请求体
+                if (endpointDef.needsBody) {
+                    requestBodySection.style.display = 'block';
+                    if (endpointDef.bodyTemplate) {
+                        document.getElementById('requestBodyEditor').value = 
+                            JSON.stringify(endpointDef.bodyTemplate, null, 2);
+                    } else {
+                        document.getElementById('requestBodyEditor').value = '{}';
+                    }
+                } else {
+                    requestBodySection.style.display = 'none';
+                }
+                
+                // 隐藏响应部分
+                apiResponseSection.style.display = 'none';
+            });
+            
+            // 发送请求按钮点击事件
+            sendRequestBtn.addEventListener('click', async function() {
+                const selectedValue = apiEndpointSelect.value;
+                if (!selectedValue) return;
+                
+                const [method, rawEndpoint] = selectedValue.split(':');
+                let endpoint = rawEndpoint;
+                const endpointDef = endpointDefs[selectedValue];
+                
+                // 处理URL参数
+                let urlParams = {};
+                const urlParamInputs = document.querySelectorAll('#urlParamsContainer input');
+                urlParamInputs.forEach(input => {
+                    const paramName = input.dataset.paramName;
+                    const paramValue = input.value.trim();
+                    
+                    if (paramValue) {
+                        if (endpoint.includes(`:${paramName}`)) {
+                            endpoint = endpoint.replace(`:${paramName}`, paramValue);
+                        } else {
+                            urlParams[paramName] = paramValue;
+                        }
+                    }
+                });
+                
+                // 构建URL查询字符串
+                const urlSearchParams = new URLSearchParams();
+                for (const key in urlParams) {
+                    urlSearchParams.append(key, urlParams[key]);
+                }
+                const queryString = urlSearchParams.toString();
+                if (queryString) {
+                    endpoint += `?${queryString}`;
+                }
+                
+                // 准备请求选项
+                const options = {
+                    method: method,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                };
+                
+                // 添加请求体（如果需要）
+                if (endpointDef.needsBody) {
+                    const bodyEditor = document.getElementById('requestBodyEditor');
+                    let body;
+                    try {
+                        body = JSON.parse(bodyEditor.value);
+                    } catch (e) {
+                        alert('请求体JSON解析失败: ' + e.message);
+                        return;
+                    }
+                    
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(body);
+                }
+                
+                // 发送请求并计时
+                const startTime = Date.now();
+                try {
+                    // 禁用发送按钮
+                    sendRequestBtn.disabled = true;
+                    sendRequestBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 发送中...';
+                    
+                    const response = await fetch(endpoint, options);
+                    const endTime = Date.now();
+                    
+                    // 提取响应头
+                    const headers = {};
+                    response.headers.forEach((value, name) => {
+                        headers[name] = value;
+                    });
+                    
+                    // 提取响应体
+                    let responseBody = '';
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        const jsonResponse = await response.json();
+                        responseBody = JSON.stringify(jsonResponse, null, 2);
+                    } else {
+                        responseBody = await response.text();
+                    }
+                    
+                    // 显示响应部分
+                    document.getElementById('responseStatus').innerText = `${response.status} ${response.statusText}`;
+                    document.getElementById('responseStatus').className = 
+                        response.ok ? 'fw-bold text-success' : 'fw-bold text-danger';
+                    document.getElementById('responseTime').innerText = `${endTime - startTime}ms`;
+                    document.getElementById('responseHeadersEditor').value = JSON.stringify(headers, null, 2);
+                    document.getElementById('responseBodyEditor').value = responseBody;
+                    apiResponseSection.style.display = 'block';
+                    
+                } catch (error) {
+                    document.getElementById('responseStatus').innerText = 'Error';
+                    document.getElementById('responseStatus').className = 'fw-bold text-danger';
+                    document.getElementById('responseTime').innerText = `${Date.now() - startTime}ms`;
+                    document.getElementById('responseHeadersEditor').value = '请求发送失败';
+                    document.getElementById('responseBodyEditor').value = error.message;
+                    apiResponseSection.style.display = 'block';
+                } finally {
+                    // 恢复发送按钮
+                    sendRequestBtn.disabled = false;
+                    sendRequestBtn.textContent = '发送请求';
+                }
+            });
+        }
+    </script>
 </body>
 </html>

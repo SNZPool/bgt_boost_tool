@@ -1,4 +1,6 @@
-.env
-boost_history.db
-app/__pycache__
-boost.log
+__pycache__
+
+/.env
+/boost.log
+/docs
+/data
