@@ -214,7 +214,8 @@ class UnboostManager:
                 print(f"✅ drop_boost: {tx_hash.hex()} for task: {task_id}", flush=True)
             else:
                 # 记录等待信息（仅在首次出现时记录）
-                if db.get_latest_event(task_id) != None:
+                event = db.get_latest_event(task_id)
+                if event != None and event["event_type"] != "DROP_BOOST_WAITING":
                     drop_info = self.get_queued_drop_info()
                     blocks_remaining = drop_info["drop_blocks_remaining"]
                     if blocks_remaining > 0:
