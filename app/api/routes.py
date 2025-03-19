@@ -3,6 +3,7 @@ from app.core.boost import boost_manager
 from app.core.unboost import unboost_manager
 from app.core.redeem import redeem_manager
 from app.core.reward import reward_manager
+from app.core.bgt_staker import bgt_staker_manager
 from app.db.database import db
 from app.workers.boost_worker import boost_worker
 from app.workers.task_processor import task_processor
@@ -138,7 +139,7 @@ def get_statistics():
 def get_earned_rewards():
     """获取已赚取的奖励"""
     account = request.args.get("account")
-    earned = reward_manager.get_earned(account)
+    earned = bgt_staker_manager.get_earned(account)
     return jsonify({"earned": earned})
 
 @api.route("/rewards/claim", methods=["POST"])
@@ -151,10 +152,7 @@ def claim_rewards():
             "message": "Running in observation mode. No blockchain transactions will be executed."
         }), 403
         
-    data = request.json
-    recipient = data.get("recipient")
-    
-    tx_hash = reward_manager.claim_reward(recipient)
+    tx_hash = bgt_staker_manager.claim_reward()
     if not tx_hash:
         return jsonify({"status": "error", "message": "Failed to claim rewards"}), 400
     

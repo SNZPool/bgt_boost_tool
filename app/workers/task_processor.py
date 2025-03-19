@@ -77,10 +77,38 @@ class TaskProcessor:
             self._observe_tasks()
             return
             
-        # 处理每种类型的任务
+        # 先恢复可能中断的任务
+        self._recover_interrupted_tasks()
+            
+        # 处理每种类型的任务（带链上验证）
         self.unboost_manager.process_pending_tasks()  # 处理待处理的unboost任务
-        self.unboost_manager.process_queued_tasks()   # 处理已排队的unboost任务
-        self.redeem_manager.process_active_tasks()    # 处理活跃的unboost任务，准备赎回
+        self.unboost_manager.process_queued_tasks()   # 处理待处理的queue unBoost队列处理
+        self.redeem_manager.process_active_tasks()    # 处理活跃的unboost任务
+
+    def _recover_interrupted_tasks(self):
+        """恢复中断的任务（基于链上状态验证）"""
+        queued_tasks = db.get_pending_tasks(
+            task_type=TaskType.UNBOOST, 
+            status=TaskStatus.QUEUED
+        )
+        for task in queued_tasks:
+            try:
+                queued_drop_info = self.unboost_manager.get_queued_drop_info()
+                if queued_drop_info["queued_drop_amount"] == 0:
+                    self._safe_transition(task, TaskStatus.CANCELED, "链上状态已生效或已被手动取消，不再进行后续处理")
+            except Exception as e:
+                logging.error(f"错误处理失败 | ID:{task['task_id']} 错误:{str(e)}", exc_info=True)
+
+    def _safe_transition(self, task, new_status, reason):
+        """安全状态转换（带原因记录）"""
+        try:
+            db.update_task(
+                task["task_id"],
+                status=new_status.value
+            )
+            logging.info(f"任务状态更新 | ID:{task['task_id']} 状态:{new_status} 原因:{reason}")
+        except Exception as e:
+                logging.error(f"状态更新失败 | ID:{task['task_id']} 错误:{str(e)}", exc_info=True)
     
     def _observe_tasks(self):
         """观察模式下，只显示任务状态但不执行操作"""
@@ -108,4 +136,4 @@ class TaskProcessor:
             print(f"[OBSERVATION] Found {len(active_tasks)} active unboost tasks ready for redeem: {task_ids}", flush=True)
 
 # 创建单例实例
-task_processor = TaskProcessor() 
+task_processor = TaskProcessor()

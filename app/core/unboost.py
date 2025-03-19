@@ -171,7 +171,7 @@ class UnboostManager:
             
             logging.info(f"✅ Queued Drop Boost: {tx_hash.hex()} for task: {task_id}")
             print(f"✅ queue_drop_boost: {tx_hash.hex()} for task: {task_id}", flush=True)
-    
+
     def process_queued_tasks(self):
         """处理已排队的unboost任务"""
         # 获取QUEUED状态的unboost任务
@@ -214,8 +214,7 @@ class UnboostManager:
                 print(f"✅ drop_boost: {tx_hash.hex()} for task: {task_id}", flush=True)
             else:
                 # 记录等待信息（仅在首次出现时记录）
-                last_log = db.get_last_task_log(task_id, "DROP_BOOST_WAITING")
-                if not last_log:
+                if db.get_latest_event(task_id) != None:
                     drop_info = self.get_queued_drop_info()
                     blocks_remaining = drop_info["drop_blocks_remaining"]
                     if blocks_remaining > 0:

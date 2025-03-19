@@ -64,9 +64,16 @@ class Config:
         return os.getenv("MODE", "")
     
     @property
+    def BGT_STAKER_CONTRACT_ADDRESS(self):
+        return os.getenv("BGT_STAKER_CONTRACT_ADDRESS")
+    
+    
+    @property
     def OBSERVATION_MODE(self):
         """观察模式：明确设置为OBSERVATION或没有私钥"""
         return self.MODE.upper() == "OBSERVATION" or not self.PRIVATE_KEY
+    
+    
 
 # 创建单例实例
 config = Config()

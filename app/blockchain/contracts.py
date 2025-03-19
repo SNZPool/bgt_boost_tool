@@ -122,6 +122,22 @@ class RewardContract(ContractClient):
         function = self.contract.functions.getReward(account, recipient)
         return self.execute(function, gas)
 
+class BGTStakerContract(ContractClient):
+    """BGT合约客户端"""
+    
+    def __init__(self):
+        super().__init__(config.BGT_STAKER_CONTRACT_ADDRESS, "app/abi/bgt_staker_abi.json")
+    
+    def earned(self, account):
+        """获取已赚取但未领取的奖励数量"""
+        return self.contract.functions.earned(account).call()
+    
+    def get_reward(self, gas=300000):
+        """领取奖励"""
+        function = self.contract.functions.getReward()
+        return self.execute(function, gas)
+
 # 创建合约实例
 bgt_contract = BGTContract()
 reward_contract = RewardContract() 
+bgt_staker_contract = BGTStakerContract()

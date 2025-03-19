@@ -2,6 +2,7 @@ import os
 import sqlite3
 import json
 import time
+import logging
 from datetime import datetime
 from app.db.models import TaskStatus, TaskType
 
@@ -167,8 +168,18 @@ class Database:
         
         # 构造并执行查询
         query = f"UPDATE tasks SET {', '.join(set_clause)} WHERE task_id = ?"
-        cursor.execute(query, values)
-        self.conn.commit()
+        print("Generated query:", query)
+        print("Values to bind:", values)
+        print("Task ID:", task_id)
+        print("Connection status:", "OK" if self.conn else "Not connected")
+        
+        try:
+            cursor.execute(query, values)
+            self.conn.commit()
+            print("Update successful")
+        except Exception as e:
+            print(f"Error during update: {str(e)}")
+            raise
     
     def get_task(self, task_id):
         """
@@ -328,6 +339,38 @@ class Database:
         
         return events
     
+    def get_latest_event(self, task_id):
+      """
+      获取指定 task_id 的最新一条事件记录
+
+      Args:
+          task_id: 任务 ID
+
+      Returns:
+          event: 最新的事件记录（字典），如果不存在，则返回 None
+      """
+      cursor = self.conn.cursor()
+      cursor.execute(
+          "SELECT * FROM events WHERE task_id = ? ORDER BY timestamp DESC LIMIT 1",
+          (task_id,)
+      )
+      row = cursor.fetchone()
+
+      if row is None:
+          return None  # 如果没有记录，返回 None
+
+      # 将 row 转换为字典
+      event = dict(row)
+
+      # 解析 JSON 详情
+      if event.get('details'):
+          try:
+              event['details'] = json.loads(event['details'])
+          except json.JSONDecodeError:
+              event['details'] = None  # 如果解析失败，设为 None
+
+      return event
+
     def update_statistics(self, task):
         """
         基于已完成任务更新统计数据
@@ -458,4 +501,4 @@ class Database:
         return history
 
 # 创建单例实例
-db = Database() 
+db = Database()
