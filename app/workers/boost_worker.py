@@ -2,7 +2,7 @@ import time
 import logging
 import threading
 from app.core.boost import boost_manager
-from app.core.bgt_staker import bgt_staker
+from app.core.bgt_staker import bgt_staker_manager
 from app.config import config
 
 class BoostWorker:
@@ -101,7 +101,7 @@ class BoostWorker:
                 
                 # 执行奖励获取
                 try:
-                    reward_tx_hash = bgt_staker.get_reward()
+                    reward_tx_hash = bgt_staker_manager.get_reward()
                     if reward_tx_hash:
                         logging.info(f"✅ Claimed Reward: {reward_tx_hash.hex()}")
                         print(f"✅ get_reward: {reward_tx_hash.hex()}", flush=True)
