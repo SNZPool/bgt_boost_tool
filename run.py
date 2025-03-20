@@ -60,7 +60,7 @@ if __name__ == "__main__":
     
     # 启动工作器
     status_worker.start()
-    # boost_worker.start()
+    boost_worker.start()
     task_processor.start()
     
     # 启动Flask服务器
