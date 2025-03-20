@@ -99,12 +99,18 @@ class BoostWorker:
                 logging.info(f"✅ Activated Boost: {tx_hash.hex()}")
                 print(f"✅ activate_boost: {tx_hash.hex()}", flush=True)
                 
-                # 执行奖励获取
+                # 等待第一个交易确认
                 try:
-                    reward_tx_hash = bgt_staker_manager.claim_reward()
-                    if reward_tx_hash:
-                        logging.info(f"✅ Claimed Reward: {reward_tx_hash.hex()}")
-                        print(f"✅ claim_reward: {reward_tx_hash.hex()}", flush=True)
+                    # 添加等待机制，确保第一笔交易已被确认
+                    web3_client = self.boost_manager.get_web3_client()  # 获取web3客户端
+                    receipt = web3_client.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+                    
+                    # 确认交易成功后再执行奖励获取
+                    if receipt.status == 1:  # 1表示交易成功
+                        reward_tx_hash = bgt_staker_manager.claim_reward()
+                        if reward_tx_hash:
+                            logging.info(f"✅ Claimed Reward: {reward_tx_hash.hex()}")
+                            print(f"✅ claim_reward: {reward_tx_hash.hex()}", flush=True)
                 except Exception as e:
                     logging.error(f"❌ Failed to claim reward: {e}")
                     print(f"❌ Failed to claim reward: {e}", flush=True)
