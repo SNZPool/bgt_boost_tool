@@ -101,10 +101,10 @@ class BoostWorker:
                 
                 # 执行奖励获取
                 try:
-                    reward_tx_hash = bgt_staker_manager.get_reward()
+                    reward_tx_hash = bgt_staker_manager.claim_reward()
                     if reward_tx_hash:
                         logging.info(f"✅ Claimed Reward: {reward_tx_hash.hex()}")
-                        print(f"✅ get_reward: {reward_tx_hash.hex()}", flush=True)
+                        print(f"✅ claim_reward: {reward_tx_hash.hex()}", flush=True)
                 except Exception as e:
                     logging.error(f"❌ Failed to claim reward: {e}")
                     print(f"❌ Failed to claim reward: {e}", flush=True)
