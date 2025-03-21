@@ -6,7 +6,6 @@ from app.core.redeem import redeem_manager
 from app.config import config
 from app.db.database import db
 from app.db.models import TaskType, TaskStatus
-from app.core.tx_lock import tx_lock
 
 class TaskProcessor:
     """任务处理器"""
@@ -78,23 +77,14 @@ class TaskProcessor:
             self._observe_tasks()
             return
 
-        # 尝试获取交易锁
-        lock_acquired = tx_lock.acquire(owner_name="TaskProcessor", blocking=True, timeout=30)
-        if not lock_acquired:
-            logging.warning("⚠️ TaskProcessor 无法获取交易锁，任务处理延迟")
-            return
-        try:
-            # 先恢复可能中断的任务
-            self._recover_interrupted_tasks()
-                
-            # 处理每种类型的任务（带链上验证）
-            self.unboost_manager.process_pending_tasks()  # 处理待处理的unboost任务
-            self.unboost_manager.process_queued_tasks()   # 处理待处理的queue unBoost队列处理
-            self.redeem_manager.process_active_tasks()    # 处理活跃的unboost任务
-            pass
-        finally:
-            # 无论成功或失败，都释放交易锁
-            tx_lock.release(owner_name="TaskProcessor")
+        # 先恢复可能中断的任务
+        self._recover_interrupted_tasks()
+            
+        # 处理每种类型的任务（带链上验证）
+        self.unboost_manager.process_pending_tasks()  # 处理待处理的unboost任务
+        self.unboost_manager.process_queued_tasks()   # 处理待处理的queue unBoost队列处理
+        self.redeem_manager.process_active_tasks()    # 处理活跃的unboost任务
+        pass
 
     def _recover_interrupted_tasks(self):
         """恢复中断的任务（基于链上状态验证）"""
@@ -145,6 +135,20 @@ class TaskProcessor:
             task_ids = [task["task_id"] for task in active_tasks]
             logging.info(f"[OBSERVATION] Found {len(active_tasks)} active unboost tasks ready for redeem: {task_ids}")
             print(f"[OBSERVATION] Found {len(active_tasks)} active unboost tasks ready for redeem: {task_ids}", flush=True)
+
+    def has_active_tasks(self):
+        """
+        检查是否有未完成的任务正在进行中
+        
+        Returns:
+            bool: 是否有任务正在进行中
+        """
+        # 检查是否有PENDING, QUEUED或ACTIVE状态的任务
+        pending_tasks = db.get_pending_tasks(task_type=TaskType.UNBOOST, status=TaskStatus.PENDING)
+        queued_tasks = db.get_pending_tasks(task_type=TaskType.UNBOOST, status=TaskStatus.QUEUED)
+        active_tasks = db.get_pending_tasks(task_type=TaskType.UNBOOST, status=TaskStatus.ACTIVE)
+        
+        return bool(pending_tasks or queued_tasks or active_tasks)
 
 # 创建单例实例
 task_processor = TaskProcessor()

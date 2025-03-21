@@ -89,6 +89,8 @@ class BoostManager:
         queued_boost = self.bgt_contract.get_boosted_queue(address, pubkey)
         block_number_last = queued_boost[0]  # 获取blockNumberLast
         amount = queued_boost[1]  # 获取queuedBoost BGT金额
+        logging.info(f"💰 Queued boost info: {queued_boost}")
+        logging.info(f"💰 Amount: {amount}")
         
         # 如果没有队列Boost余额，返回False
         if amount == 0:
