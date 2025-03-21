@@ -72,18 +72,18 @@ class TaskProcessor:
             self._stop_event.wait(timeout=self.interval)
     
     def _process_tasks(self):
+        """处理各种类型的任务"""
+        # 观察模式下只显示任务状态，不执行操作
+        if config.OBSERVATION_MODE:
+            self._observe_tasks()
+            return
+
         # 尝试获取交易锁
         lock_acquired = tx_lock.acquire(owner_name="TaskProcessor", blocking=True, timeout=30)
         if not lock_acquired:
             logging.warning("⚠️ TaskProcessor 无法获取交易锁，任务处理延迟")
             return
         try:
-            """处理各种类型的任务"""
-            # 观察模式下只显示任务状态，不执行操作
-            if config.OBSERVATION_MODE:
-                self._observe_tasks()
-                return
-                
             # 先恢复可能中断的任务
             self._recover_interrupted_tasks()
                 
