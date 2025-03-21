@@ -138,46 +138,46 @@ class BoostWorker:
                             except Exception as e:
                                 continue  # 如果不是ActivateBoost事件，继续下一个日志
                         
-                        # 确认交易成功后再执行奖励获取
-                        if receipt.status == 1:  # 1表示交易成功
-                            reward_tx_hash = bgt_staker_manager.claim_reward()
-                            if reward_tx_hash:
-                                logging.info(f"✅ Claimed Reward: {reward_tx_hash.hex()}")
-                                print(f"✅ claim_reward: {reward_tx_hash.hex()}", flush=True)
+                        # # 确认交易成功后再执行奖励获取
+                        # if receipt.status == 1:  # 1表示交易成功
+                        #     reward_tx_hash = bgt_staker_manager.claim_reward()
+                        #     if reward_tx_hash:
+                        #         logging.info(f"✅ Claimed Reward: {reward_tx_hash.hex()}")
+                        #         print(f"✅ claim_reward: {reward_tx_hash.hex()}", flush=True)
                                 
-                                # 等待奖励交易确认并获取区块高度
-                                try:
-                                    # 使用正确的web3_client
-                                    reward_receipt = web3_client.w3.eth.wait_for_transaction_receipt(reward_tx_hash, timeout=120)
+                        #         # 等待奖励交易确认并获取区块高度
+                        #         try:
+                        #             # 使用正确的web3_client
+                        #             reward_receipt = web3_client.w3.eth.wait_for_transaction_receipt(reward_tx_hash, timeout=120)
                                     
-                                    # 获取奖励交易区块高度
-                                    reward_block_number = reward_receipt.blockNumber
-                                    logging.info(f"📦 奖励交易区块高度: {reward_block_number}")
-                                    print(f"📦 奖励交易区块高度: {reward_block_number}", flush=True)
+                        #             # 获取奖励交易区块高度
+                        #             reward_block_number = reward_receipt.blockNumber
+                        #             logging.info(f"📦 奖励交易区块高度: {reward_block_number}")
+                        #             print(f"📦 奖励交易区块高度: {reward_block_number}", flush=True)
                                     
-                                    # 修正获取staker合约相关信息的方式
-                                    staker_contract_address = bgt_staker_manager.contract.address
-                                    staker_contract = web3_client.w3.eth.contract(
-                                        address=staker_contract_address, 
-                                        abi=bgt_staker_manager.contract.abi
-                                    )
+                        #             # 修正获取staker合约相关信息的方式
+                        #             staker_contract_address = bgt_staker_manager.contract.address
+                        #             staker_contract = web3_client.w3.eth.contract(
+                        #                 address=staker_contract_address, 
+                        #                 abi=bgt_staker_manager.contract.abi
+                        #             )
                                     
-                                    # 遍历日志查找RewardPaid事件
-                                    for log in reward_receipt.logs:
-                                        try:
-                                            if log['address'].lower() == staker_contract_address.lower():
-                                                # 尝试解析RewardPaid事件
-                                                parsed_log = staker_contract.events.RewardPaid().process_log(log)
-                                                reward_amount = parsed_log['args']['reward']
-                                                logging.info(f"💰 RewardPaid事件reward值: {reward_amount}")
-                                                print(f"💰 RewardPaid事件reward值: {reward_amount}", flush=True)
-                                                break  # 找到事件后退出循环
-                                        except Exception as e:
-                                            continue  # 如果不是RewardPaid事件，继续下一个日志
+                        #             # 遍历日志查找RewardPaid事件
+                        #             for log in reward_receipt.logs:
+                        #                 try:
+                        #                     if log['address'].lower() == staker_contract_address.lower():
+                        #                         # 尝试解析RewardPaid事件
+                        #                         parsed_log = staker_contract.events.RewardPaid().process_log(log)
+                        #                         reward_amount = parsed_log['args']['reward']
+                        #                         logging.info(f"💰 RewardPaid事件reward值: {reward_amount}")
+                        #                         print(f"💰 RewardPaid事件reward值: {reward_amount}", flush=True)
+                        #                         break  # 找到事件后退出循环
+                        #                 except Exception as e:
+                        #                     continue  # 如果不是RewardPaid事件，继续下一个日志
                                 
-                                except Exception as e:
-                                    logging.error(f"❌ 获取奖励交易信息失败: {e}")
-                                    print(f"❌ 获取奖励交易信息失败: {e}", flush=True)
+                        #         except Exception as e:
+                        #             logging.error(f"❌ 获取奖励交易信息失败: {e}")
+                        #             print(f"❌ 获取奖励交易信息失败: {e}", flush=True)
                     except Exception as e:
                         logging.error(f"❌ Failed to claim reward: {e}")
                         print(f"❌ Failed to claim reward: {e}", flush=True)
