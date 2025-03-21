@@ -6,6 +6,7 @@ from app.core.redeem import redeem_manager
 from app.config import config
 from app.db.database import db
 from app.db.models import TaskType, TaskStatus
+from app.core.tx_lock import tx_lock
 
 class TaskProcessor:
     """任务处理器"""
@@ -71,19 +72,29 @@ class TaskProcessor:
             self._stop_event.wait(timeout=self.interval)
     
     def _process_tasks(self):
-        """处理各种类型的任务"""
-        # 观察模式下只显示任务状态，不执行操作
-        if config.OBSERVATION_MODE:
-            self._observe_tasks()
+        # 尝试获取交易锁
+        lock_acquired = tx_lock.acquire(owner_name="TaskProcessor", blocking=True, timeout=30)
+        if not lock_acquired:
+            logging.warning("⚠️ TaskProcessor 无法获取交易锁，任务处理延迟")
             return
-            
-        # 先恢复可能中断的任务
-        self._recover_interrupted_tasks()
-            
-        # 处理每种类型的任务（带链上验证）
-        self.unboost_manager.process_pending_tasks()  # 处理待处理的unboost任务
-        self.unboost_manager.process_queued_tasks()   # 处理待处理的queue unBoost队列处理
-        self.redeem_manager.process_active_tasks()    # 处理活跃的unboost任务
+        try:
+            """处理各种类型的任务"""
+            # 观察模式下只显示任务状态，不执行操作
+            if config.OBSERVATION_MODE:
+                self._observe_tasks()
+                return
+                
+            # 先恢复可能中断的任务
+            self._recover_interrupted_tasks()
+                
+            # 处理每种类型的任务（带链上验证）
+            self.unboost_manager.process_pending_tasks()  # 处理待处理的unboost任务
+            self.unboost_manager.process_queued_tasks()   # 处理待处理的queue unBoost队列处理
+            self.redeem_manager.process_active_tasks()    # 处理活跃的unboost任务
+            pass
+        finally:
+            # 无论成功或失败，都释放交易锁
+            tx_lock.release(owner_name="TaskProcessor")
 
     def _recover_interrupted_tasks(self):
         """恢复中断的任务（基于链上状态验证）"""
