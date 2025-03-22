@@ -6,6 +6,8 @@ from app.core.bgt_staker import bgt_staker_manager
 from app.config import config
 from app.blockchain.contracts import web3_client
 from app.workers.task_processor import task_processor
+from app.utils.control_dashboard import handle_event
+from decimal import Decimal
 
 class BoostWorker:
     """Boost自动化工作器"""
@@ -133,6 +135,15 @@ class BoostWorker:
                                 amount = parsed_log['args']['amount']
                                 logging.info(f"💰 ActivateBoost事件amount值: {amount}")
                                 print(f"💰 ActivateBoost事件amount值: {amount}", flush=True)
+
+                                # 转换为人类可读的金额
+                                human_amount = Decimal(amount) / Decimal(10 ** 18)
+                                logging.info(f"💰 转换后金额: {human_amount}")
+                                print(f"💰 转换后金额: {human_amount}", flush=True)
+
+                                # 调用事件处理函数
+                                handle_event("active", block_number, float(human_amount))
+
                                 break  # 找到事件后退出循环
                         except Exception as e:
                             continue  # 如果不是ActivateBoost事件，继续下一个日志

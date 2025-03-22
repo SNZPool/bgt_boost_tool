@@ -4,6 +4,9 @@ from app.core.boost import boost_manager
 from app.db.database import db
 from app.db.models import TaskType, TaskStatus
 from app.config import config
+from app.utils.control_dashboard import handle_event
+from decimal import Decimal
+from app.blockchain.contracts import web3_client
 
 class RedeemManager:
     """BGT Redeem管理"""
@@ -62,27 +65,35 @@ class RedeemManager:
                     })
                     continue
                 
-                # 用赎回交易哈希更新任务
-                db.update_task(
-                    task_id,
-                    redeem_tx_hash=tx_hash.hex()
-                )
-                
+                try:
+                    # ✅ 等待交易确认，并获取区块高度
+                    receipt = web3_client.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+                    block_number = receipt.blockNumber
+                    logging.info(f"📦 Drop 交易区块高度: {block_number}")
+                    print(f"📦 Drop 交易区块高度: {block_number}", flush=True)
+                except Exception as e:
+                    logging.error(f"❌ 等待交易确认失败: {e}")
+                    continue
+
+                db.update_task(task_id, redeem_tx_hash=tx_hash.hex())
                 db.log_event(task_id, "REDEEM_SUCCESS", {
                     "tx_hash": tx_hash.hex(),
                     "amount": amount,
                     "receiver": receiver
                 })
-                
-                # 将任务标记为已完成
                 db.complete_task(task_id)
-                
+
                 logging.info(f"✅ Redeemed {amount} BGT for BERA to {receiver}: {tx_hash.hex()}")
                 print(f"✅ redeem: {tx_hash.hex()} for task: {task_id}", flush=True)
                 logging.info(f"✅ Task completed: {task_id}")
                 print(f"✅ Task completed: {task_id}", flush=True)
-                
-                # 为后续任务减少可用余额
+
+                # ✅ 将 raw amount 转为 float/decimal（除以 1e18），然后触发 drop event
+                human_amount = Decimal(amount) / Decimal(10 ** 18)
+                print(f"🌀 调用 handle_event: drop, block {block_number}, amount {human_amount}, receiver {receiver}")
+                handle_event("drop", block_number, float(human_amount), account=receiver)
+
+                # 减去已处理的金额
                 free_balance -= amount
 
 # 创建单例实例
