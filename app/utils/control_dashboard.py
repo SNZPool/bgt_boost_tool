@@ -29,11 +29,15 @@ def call_b_event(action: str, block_number: int, bgt_amount: float, account: str
         str(block_number),
         str(bgt_amount),
     ]
+    env = os.environ.copy()
     if action == "drop" and account:
         cmd.append(account)
+    else:
+        if config.PRIVATE_KEY:
+            env["PRIVATE_KEY"] = config.PRIVATE_KEY
 
     print(f"[INFO] 调用事件处理脚本：{' '.join(cmd)} (cwd={project_path})")
-    subprocess.run(cmd, cwd=project_path, check=True)
+    subprocess.run(cmd, cwd=project_path, check=True, env=env)
 
 # === 获取 dashboard 进程（根据 cwd 和脚本名）===
 def get_dashboard_pids():
