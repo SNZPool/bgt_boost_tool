@@ -142,7 +142,8 @@ class BoostWorker:
                                 print(f"💰 转换后金额: {human_amount}", flush=True)
 
                                 # 调用事件处理函数
-                                handle_event("active", block_number, float(human_amount))
+                                if config.ENABLE_EVENT_HANDLER:
+                                    handle_event("active", block_number, float(human_amount))
 
                                 break  # 找到事件后退出循环
                         except Exception as e:

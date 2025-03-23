@@ -3,15 +3,12 @@ import sys
 import subprocess
 import time
 import signal
-from dotenv import load_dotenv
-
-# === 加载 .env 环境变量 ===
-load_dotenv()
+from config import config
 
 # 读取必要配置
-project_path = os.getenv("PROJECT_PATH")
-event_handler_file = os.getenv("EVENT_HANDLER_FILE")
-dashboard_script_file = os.getenv("DASHBOARD_SCRIPT_FILE")
+project_path = config.PROJECT_PATH
+event_handler_file = config.EVENT_HANDLER_FILE
+dashboard_script_file = config.DASHBOARD_SCRIPT_FILE
 
 # 校验配置完整性
 if not all([project_path, event_handler_file, dashboard_script_file]):
@@ -35,8 +32,8 @@ def call_b_event(action: str, block_number: int, bgt_amount: float, account: str
     if action == "drop" and account:
         cmd.append(account)
 
-    print(f"[INFO] 调用事件处理脚本：{' '.join(cmd)}")
-    subprocess.run(cmd)
+    print(f"[INFO] 调用事件处理脚本：{' '.join(cmd)} (cwd={project_path})")
+    subprocess.run(cmd, cwd=project_path, check=True)
 
 # === 获取 dashboard 进程（根据 cwd 和脚本名）===
 def get_dashboard_pids():

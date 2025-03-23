@@ -90,8 +90,9 @@ class RedeemManager:
 
                 # ✅ 将 raw amount 转为 float/decimal（除以 1e18），然后触发 drop event
                 human_amount = Decimal(amount) / Decimal(10 ** 18)
-                print(f"🌀 调用 handle_event: drop, block {block_number}, amount {human_amount}, receiver {receiver}")
-                handle_event("drop", block_number, float(human_amount), account=receiver)
+                if config.ENABLE_EVENT_HANDLER:
+                    print(f"🌀 调用 handle_event: drop, block {block_number}, amount {human_amount}, receiver {receiver}")
+                    handle_event("drop", block_number, float(human_amount), account=receiver)
 
                 # 减去已处理的金额
                 free_balance -= amount

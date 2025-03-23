@@ -67,12 +67,26 @@ class Config:
     def BGT_STAKER_CONTRACT_ADDRESS(self):
         return os.getenv("BGT_STAKER_CONTRACT_ADDRESS")
     
-    
     @property
     def OBSERVATION_MODE(self):
         """观察模式：明确设置为OBSERVATION或没有私钥"""
         return self.MODE.upper() == "OBSERVATION" or not self.PRIVATE_KEY
     
+    @property
+    def ENABLE_EVENT_HANDLER(self):
+        return os.getenv("ENABLE_EVENT_HANDLER", "FALSE").upper() == "TRUE"
+    
+    @property
+    def DASHBOARD_SCRIPT_FILE(self):
+        return os.getenv("DASHBOARD_SCRIPT_FILE")
+    
+    @property
+    def EVENT_HANDLER_FILE(self):
+        return os.getenv("EVENT_HANDLER_FILE")
+    
+    @property
+    def PROJECT_PATH(self):
+        return os.getenv("PROJECT_PATH")
     
 
 # 创建单例实例
