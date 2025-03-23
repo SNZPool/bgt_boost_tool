@@ -3,7 +3,7 @@ import sys
 import subprocess
 import time
 import signal
-from config import config
+from app.config import config
 
 # 读取必要配置
 project_path = config.PROJECT_PATH
