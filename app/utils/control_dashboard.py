@@ -37,7 +37,7 @@ def call_b_event(action: str, block_number: int, bgt_amount: float, account: str
             env["PRIVATE_KEY"] = config.PRIVATE_KEY
 
     print(f"[INFO] 调用事件处理脚本：{' '.join(cmd)} (cwd={project_path})")
-    subprocess.run(cmd, cwd=project_path, check=True, env=env)
+    subprocess.run(cmd, cwd=project_path, check=True, env=env, start_new_session=True)
 
 # === 获取 dashboard 进程（根据 cwd 和脚本名）===
 def get_dashboard_pids():
@@ -71,7 +71,7 @@ def restart_dashboard():
     time.sleep(5)
 
     print("[INFO] 启动 dashboard...")
-    subprocess.Popen(["python3", dashboard_script_path], cwd=project_path)
+    subprocess.Popen(["python3", dashboard_script_path], cwd=project_path, start_new_session=True)
 
 # === 主函数：事件处理 + 重启 dashboard ===
 def handle_event(action: str, block_number: int, bgt_amount: float, account: str = None):
