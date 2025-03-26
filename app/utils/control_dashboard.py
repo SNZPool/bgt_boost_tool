@@ -37,15 +37,20 @@ def call_b_event(action: str, block_number: int, bgt_amount: float, account: str
             env["PRIVATE_KEY"] = config.PRIVATE_KEY
 
     print(f"[INFO] 调用事件处理脚本：{' '.join(cmd)} (cwd={project_path})")
-    # 使用nohup启动进程，确保进程在后台持续运行
-    subprocess.Popen(
-        cmd,
-        cwd=project_path,
-        env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        preexec_fn=os.setpgrp  # 创建新的进程组
-    )
+    try:
+        # 使用subprocess.run等待脚本执行完成
+        result = subprocess.run(
+            cmd,
+            cwd=project_path,
+            env=env,
+            check=True,  # 如果脚本返回非零状态码，抛出异常
+            capture_output=True,  # 捕获输出
+            text=True  # 将输出转换为文本
+        )
+        print(f"[INFO] 事件处理脚本执行完成")
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] 事件处理脚本执行失败: {e.stderr}")
+        raise
 
 # === 获取 dashboard 进程（根据 cwd 和脚本名）===
 def get_dashboard_pids():
