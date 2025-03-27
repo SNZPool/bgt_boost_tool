@@ -90,7 +90,7 @@ def restart_dashboard():
         cwd=project_path,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
-        preexec_fn=os.setpgrp  # 创建新的进程组
+        start_new_session=True
     )
 
 # === 主函数：事件处理 + 重启 dashboard ===
