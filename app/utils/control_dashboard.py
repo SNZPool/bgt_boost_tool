@@ -121,7 +121,10 @@ def handle_event(action: str, block_number: int = None, bgt_amount: float = None
         bgt_amount: BGT数量（可选，active和drop事件需要）
         account: 账户地址（可选，仅drop事件需要）
     """
-    call_b_event(action, block_number, bgt_amount, account)
+    if action == "claim_incentive":
+        call_b_event(action)
+    else:
+        call_b_event(action, block_number, bgt_amount, account)
     restart_dashboard()
 
 
