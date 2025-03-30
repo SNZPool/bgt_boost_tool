@@ -5,7 +5,7 @@ from app.core.redeem import redeem_manager
 from app.core.reward import reward_manager
 from app.core.bgt_staker import bgt_staker_manager
 from app.db.database import db
-from app.workers.periodic_worker import boost_worker
+from app.workers.periodic_worker import periodic_worker
 from app.workers.task_processor import task_processor
 from app.workers.status_worker import status_worker
 from app.config import config
@@ -28,11 +28,11 @@ def status():
     stats["can_execute"] = not config.OBSERVATION_MODE
     return jsonify(stats)
 
-@api.route("/toggle_boost", methods=["POST"])
-def toggle_boost():
-    """启用/禁用boost worker"""
-    new_state = boost_worker.toggle()
-    return jsonify({"boost_enabled": new_state})
+@api.route("/toggle_periodic", methods=["POST"])
+def toggle_periodic():
+    """启用/禁用periodic worker"""
+    new_state = periodic_worker.toggle()
+    return jsonify({"periodic_enabled": new_state})
 
 @api.route("/toggle_task_processor", methods=["POST"])
 def toggle_task_processor():
