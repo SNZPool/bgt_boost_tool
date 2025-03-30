@@ -125,7 +125,7 @@ def handle_event(action: str, block_number: int = None, bgt_amount: float = None
         call_b_event(action)
     else:
         call_b_event(action, block_number, bgt_amount, account)
-    restart_dashboard()
+        restart_dashboard()
 
 
 # ✅ 示例调用
