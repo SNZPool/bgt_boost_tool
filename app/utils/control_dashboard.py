@@ -111,7 +111,16 @@ def restart_dashboard():
     )
 
 # === 主函数：事件处理 + 重启 dashboard ===
-def handle_event(action: str, block_number: int, bgt_amount: float, account: str = None):
+def handle_event(action: str, block_number: int = None, bgt_amount: float = None, account: str = None):
+    """
+    处理事件并重启dashboard
+    
+    Args:
+        action: 事件类型（active/drop/claim_incentive）
+        block_number: 区块号（可选，active和drop事件需要）
+        bgt_amount: BGT数量（可选，active和drop事件需要）
+        account: 账户地址（可选，仅drop事件需要）
+    """
     call_b_event(action, block_number, bgt_amount, account)
     restart_dashboard()
 
