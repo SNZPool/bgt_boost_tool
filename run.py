@@ -11,7 +11,7 @@ import sys
 from flask import Flask
 from app.config import config
 from app.api.routes import api
-from app.workers.boost_worker import boost_worker
+from app.workers.periodic_worker import periodic_worker
 from app.workers.task_processor import task_processor
 from app.workers.status_worker import status_worker
 
@@ -32,7 +32,7 @@ def signal_handler(sig, frame):
     logging.info("Shutting down gracefully")
     
     # 停止工作器
-    boost_worker.stop()
+    periodic_worker.stop()
     task_processor.stop()
     status_worker.stop()
     
@@ -60,8 +60,9 @@ if __name__ == "__main__":
     
     # 启动工作器
     status_worker.start()
-    boost_worker.start()
+    periodic_worker.start()
     task_processor.start()
+
     
     # 启动Flask服务器
     app.run(

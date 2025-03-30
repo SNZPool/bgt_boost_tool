@@ -21,20 +21,37 @@ dashboard_script_path = os.path.join(project_path, dashboard_script_file)
 dashboard_script_name = os.path.basename(dashboard_script_file)  # 只取 dashboard.py，用于匹配进程
 
 # === 调用 B 的事件处理函数 ===
-def call_b_event(action: str, block_number: int, bgt_amount: float, account: str = None):
-    cmd = [
-        "python3",
-        event_handler_path,
-        action,
-        str(block_number),
-        str(bgt_amount),
-    ]
+def call_b_event(action: str, block_number: int = None, bgt_amount: float = None, account: str = None):
+    cmd = ["python3", event_handler_path, action]
+    
+    # 定义事件参数映射
+    event_params = {
+        "claim_incentive": [],  # 不需要额外参数
+        "active": ["block_number", "bgt_amount"],  # 需要block_number和bgt_amount
+        "drop": ["block_number", "bgt_amount", "account"]  # 需要block_number、bgt_amount和account
+    }
+    
+    # 获取当前事件需要的参数列表
+    required_params = event_params.get(action, [])
+    
+    # 参数映射表
+    param_values = {
+        "block_number": block_number,
+        "bgt_amount": bgt_amount,
+        "account": account
+    }
+    
+    # 验证并添加参数
+    for param in required_params:
+        value = param_values.get(param)
+        if value is None:
+            raise ValueError(f"事件 {action} 需要 {param} 参数")
+        cmd.append(str(value))
+    
     env = os.environ.copy()
-    if action == "drop" and account:
-        cmd.append(account)
-    else:
-        if config.PRIVATE_KEY:
-            env["PRIVATE_KEY"] = config.PRIVATE_KEY
+    # 所有事件都需要PRIVATE_KEY
+    if config.PRIVATE_KEY:
+        env["PRIVATE_KEY"] = config.PRIVATE_KEY
 
     print(f"[INFO] 调用事件处理脚本：{' '.join(cmd)} (cwd={project_path})")
     try:

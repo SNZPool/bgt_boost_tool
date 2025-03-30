@@ -5,7 +5,7 @@ from app.core.redeem import redeem_manager
 from app.core.reward import reward_manager
 from app.core.bgt_staker import bgt_staker_manager
 from app.db.database import db
-from app.workers.boost_worker import boost_worker
+from app.workers.periodic_worker import boost_worker
 from app.workers.task_processor import task_processor
 from app.workers.status_worker import status_worker
 from app.config import config

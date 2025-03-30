@@ -9,12 +9,12 @@ from app.workers.task_processor import task_processor
 from app.utils.control_dashboard import handle_event
 from decimal import Decimal
 
-class BoostWorker:
-    """Boost自动化工作器"""
+class PeriodicWorker:
+    """周期性自动化工作器"""
     
     def __init__(self, interval=None):
         """
-        初始化Boost工作器
+        初始化周期性工作器
         
         Args:
             interval: 检查间隔（秒）
@@ -33,13 +33,13 @@ class BoostWorker:
             bool: 新的状态
         """
         self.enabled = not self.enabled
-        logging.info(f"Boost worker {'enabled' if self.enabled else 'disabled'}")
+        logging.info(f"周期性工作器 {'enabled' if self.enabled else 'disabled'}")
         return self.enabled
     
     def start(self):
         """启动工作器线程"""
         if self._thread is not None and self._thread.is_alive():
-            logging.warning("Boost worker already running")
+            logging.warning("周期性工作器已在运行中")
             return
         
         self._stop_event.clear()
@@ -47,8 +47,8 @@ class BoostWorker:
         self._thread.start()
         
         mode_msg = "OBSERVATION MODE" if config.OBSERVATION_MODE else "EXECUTION MODE"
-        logging.info(f"Boost worker started ({mode_msg})")
-        print(f"Boost worker started ({mode_msg})", flush=True)
+        logging.info(f"周期性工作器已启动 ({mode_msg})")
+        print(f"周期性工作器已启动 ({mode_msg})", flush=True)
     
     def stop(self):
         """停止工作器线程"""
@@ -56,7 +56,7 @@ class BoostWorker:
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=5.0)
         self._thread = None
-        logging.info("Boost worker stopped")
+        logging.info("周期性工作器已停止")
     
     def _run(self):
         """运行循环"""
@@ -65,8 +65,8 @@ class BoostWorker:
                 try:
                     self._process_boost()
                 except Exception as e:
-                    logging.error(f"Error in boost worker: {e}")
-                    print(f"❌ Error in boost worker: {e}", flush=True)
+                    logging.error(f"周期性工作器运行错误: {e}")
+                    print(f"❌ 周期性工作器运行错误: {e}", flush=True)
             
             # 使用事件等待，允许提前停止
             self._stop_event.wait(timeout=self.interval)
@@ -91,8 +91,7 @@ class BoostWorker:
             
             if self.boost_manager.can_activate_boost():
                 logging.info("[OBSERVATION] Conditions met for activate boost")
-                print("[OBSERVATION] Conditions met for activate boost", flush=True)
-            
+                print("[OBSERVATION] Conditions met for activate boost", flush=True)     
             return
 
         # 1. 执行Queue Boost（仅当队列为空时）
@@ -101,6 +100,7 @@ class BoostWorker:
             if tx_hash:
                 logging.info(f"✅ Queued Boost: {tx_hash.hex()}")
                 print(f"✅ queue_boost: {tx_hash.hex()}", flush=True)
+            return
 
         # 2. 当条件满足时执行Activate Boost
         if self.boost_manager.can_activate_boost():
@@ -192,6 +192,10 @@ class BoostWorker:
                 except Exception as e:
                     logging.error(f"❌ Failed to claim reward: {e}")
                     print(f"❌ Failed to claim reward: {e}", flush=True)
+            return
+
+        # 3. 调用 handle_event("claim_incentive")
+        handle_event("claim_incentive")
 
 # 创建单例实例
-boost_worker = BoostWorker()
+periodic_worker = PeriodicWorker()
