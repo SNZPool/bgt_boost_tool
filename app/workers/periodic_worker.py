@@ -7,6 +7,7 @@ from app.config import config
 from app.blockchain.contracts import web3_client
 from app.workers.task_processor import task_processor
 from app.utils.control_dashboard import handle_event
+from app.core.hub_api import hub_api
 from decimal import Decimal
 
 class PeriodicWorker:
@@ -195,7 +196,8 @@ class PeriodicWorker:
             return
 
         # 3. 调用 handle_event("claim_incentive")
-        handle_event("claim_incentive")
+        if hub_api.has_incentives(config.ADDRESS):
+            handle_event("claim_incentive")
 
 # 创建单例实例
 periodic_worker = PeriodicWorker()

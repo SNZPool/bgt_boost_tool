@@ -4,3 +4,4 @@ __pycache__
 /boost.log
 /docs
 /data
+/test.py
