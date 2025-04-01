@@ -62,7 +62,7 @@ class HubAPI:
             data = response.json()
             
             # 如果返回为null，返回空列表
-            if data is None:
+            if data is None or data == []:
                 return []
                 
             # 返回完整的激励详情列表
