@@ -29,8 +29,8 @@ class HubAPI:
             # 解析响应数据
             data = response.json()
             
-            # 如果返回为null，返回False
-            if data is None:
+            # 如果返回为null或空列表，返回False
+            if data is None or data == []:
                 return False
                 
             return True
@@ -71,8 +71,6 @@ class HubAPI:
         except Exception as e:
             logging.error(f"获取激励详情时出错: {e}")
             return []
-            logging.error(f"获取激励金额时出错: {e}")
-            return 0
 
 # 创建单例实例
 hub_api = HubAPI()
