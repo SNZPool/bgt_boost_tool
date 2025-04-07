@@ -198,6 +198,8 @@ class PeriodicWorker:
         # 3. 调用 handle_event("claim_incentive")
         while hub_api.has_incentives(config.ADDRESS):
             handle_event("claim_incentive")
+            # 等待 berachain hub api 更新数据
+            time.sleep(60)
 
         # 4. 调用 handle_event("distribute_incentive")
         # 被调用端允许周期调用，当不满足条件时直接跳过
