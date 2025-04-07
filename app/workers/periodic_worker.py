@@ -196,8 +196,16 @@ class PeriodicWorker:
             return
 
         # 3. 调用 handle_event("claim_incentive")
-        # if hub_api.has_incentives(config.ADDRESS):
-        #     handle_event("claim_incentive")
+        if hub_api.has_incentives(config.ADDRESS):
+            handle_event("claim_incentive")
+
+        # 4. 调用 handle_event("distribute_incentive")
+        # 被调用端允许周期调用，当不满足条件时直接跳过
+        handle_event("distribute_incentive")
+
+        # 5. 调用 handle_event("distribute_honey")
+        # 被调用端允许周期调用，当不满足条件时直接跳过
+        handle_event("distribute_honey")
 
 # 创建单例实例
 periodic_worker = PeriodicWorker()
