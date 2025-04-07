@@ -195,19 +195,19 @@ class PeriodicWorker:
                     print(f"❌ Failed to claim reward: {e}", flush=True)
             return
 
-        # 3. 调用 handle_event("claim_incentive")
+        # 3. 调用 handle_event("distribute_honey")
+        # 被调用端允许周期调用，当不满足条件时直接跳过
+        handle_event("distribute_honey")
+
+        # 4. 调用 handle_event("claim_incentive")
         while hub_api.has_incentives(config.ADDRESS):
             handle_event("claim_incentive")
             # 等待 berachain hub api 更新数据
             time.sleep(60)
 
-        # 4. 调用 handle_event("distribute_incentive")
+        # 5. 调用 handle_event("distribute_incentive")
         # 被调用端允许周期调用，当不满足条件时直接跳过
         handle_event("distribute_incentive")
-
-        # 5. 调用 handle_event("distribute_honey")
-        # 被调用端允许周期调用，当不满足条件时直接跳过
-        handle_event("distribute_honey")
 
 # 创建单例实例
 periodic_worker = PeriodicWorker()
