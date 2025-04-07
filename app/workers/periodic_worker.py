@@ -196,7 +196,7 @@ class PeriodicWorker:
             return
 
         # 3. 调用 handle_event("claim_incentive")
-        if hub_api.has_incentives(config.ADDRESS):
+        while hub_api.has_incentives(config.ADDRESS):
             handle_event("claim_incentive")
 
         # 4. 调用 handle_event("distribute_incentive")
