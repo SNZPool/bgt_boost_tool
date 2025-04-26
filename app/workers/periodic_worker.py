@@ -200,10 +200,33 @@ class PeriodicWorker:
         handle_event("distribute_honey")
 
         # 4. 调用 handle_event("claim_incentive")
-        while hub_api.has_incentives(config.ADDRESS):
-            handle_event("claim_incentive")
-            # 等待 berachain hub api 更新数据
-            time.sleep(60)
+        # 检查是否需要检查激励
+        # 使用内存中的变量记录上次检查时间，避免使用数据库
+        current_time = time.time()
+        
+        # 如果是第一次运行或者_last_incentive_check_time未定义
+        if not hasattr(self, '_last_incentive_check_time'):
+            self._last_incentive_check_time = 0
+            
+        # 计算距离上次检查的时间（秒）
+        time_since_last_check = current_time - self._last_incentive_check_time
+        
+        # 检查是否已经过了24小时（86400秒）
+        if time_since_last_check >= 86400:  # 每24小时检查一次
+            logging.info("开始每日激励检查")
+            print("开始每日激励检查", flush=True)
+            
+            while hub_api.has_incentives(config.ADDRESS):
+                handle_event("claim_incentive")
+                # 等待 berachain hub api 更新数据
+                time.sleep(60)
+
+            # 更新上次检查时间
+            self._last_incentive_check_time = current_time
+        else:
+            # 如果未到检查时间，则跳过此部分
+            logging.debug(f"距离下次激励检查还有 {86400 - time_since_last_check} 秒")
+            return
 
         # 5. 调用 handle_event("distribute_incentive")
         # 被调用端允许周期调用，当不满足条件时直接跳过
