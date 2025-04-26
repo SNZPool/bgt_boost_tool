@@ -216,10 +216,11 @@ class PeriodicWorker:
             logging.info("开始每日激励检查")
             print("开始每日激励检查", flush=True)
             
-            while hub_api.has_incentives(config.ADDRESS):
-                handle_event("claim_incentive")
-                # 等待 berachain hub api 更新数据
-                time.sleep(300)
+            # while hub_api.has_incentives(config.ADDRESS):
+            #     handle_event("claim_incentive")
+            #     # 等待 berachain hub api 更新数据
+            #     time.sleep(300)
+            handle_event("claim_incentive")
 
             # 更新上次检查时间
             self._last_incentive_check_time = current_time
