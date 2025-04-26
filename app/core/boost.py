@@ -30,7 +30,9 @@ class BoostManager:
             queued_balance = self.bgt_contract.get_queued_boost(address) / (10 ** 18)
             
             # 计算空闲余额
-            free_balance = total_balance - boost_balance - queued_balance
+            free_balance = (self.bgt_contract.get_balance(address) - 
+                self.bgt_contract.get_boosts(address) - 
+                self.bgt_contract.get_queued_boost(address)) / (10 ** 18)
             
             # 获取队列详情
             queued_boost_info = self.bgt_contract.get_boosted_queue(address, pubkey)
