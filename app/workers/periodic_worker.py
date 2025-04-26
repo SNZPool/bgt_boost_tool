@@ -219,7 +219,7 @@ class PeriodicWorker:
             while hub_api.has_incentives(config.ADDRESS):
                 handle_event("claim_incentive")
                 # 等待 berachain hub api 更新数据
-                time.sleep(60)
+                time.sleep(300)
 
             # 更新上次检查时间
             self._last_incentive_check_time = current_time
