@@ -88,6 +88,18 @@ class Config:
     def PROJECT_PATH(self):
         return os.getenv("PROJECT_PATH")
     
+    @property
+    def ENABLE_REBALANCE_HANDLER(self):
+        return os.getenv("ENABLE_REBALANCE_HANDLER", "FALSE").upper() == "TRUE"
+    
+    @property
+    def BGT_EMISSION_REBALANCE_PATH(self):
+        return os.getenv("BGT_EMISSION_REBALANCE_PATH")
+    
+    @property
+    def BGT_REBALANCE_HANDLER_FILE(self):
+        return os.getenv("BGT_REBALANCE_HANDLER_FILE")
+    
 
 # 创建单例实例
 config = Config()

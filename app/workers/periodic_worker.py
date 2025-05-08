@@ -233,5 +233,26 @@ class PeriodicWorker:
         # 被调用端允许周期调用，当不满足条件时直接跳过
         handle_event("distribute_incentive")
 
+        # 6. 调用 emission_rebalance
+        if config.ENABLE_REBALANCE_HANDLER == True:
+            # 检查是否需要执行 emission_rebalance
+            if not hasattr(self, '_last_rebalance_time'):
+                self._last_rebalance_time = 0
+
+            # 计算距离上次执行的时间（秒）
+            time_since_last_rebalance = current_time - self._last_rebalance_time
+
+            # 检查是否已经过了4小时（14400秒）
+            if time_since_last_rebalance >= 14400:  # 每4小时执行一次
+                logging.info("开始执行 emission_rebalance")
+                print("开始执行 emission_rebalance", flush=True)
+                
+                handle_event("emission_rebalance")
+                
+                # 更新上次执行时间
+                self._last_rebalance_time = current_time
+            else:
+                logging.info(f"距离下次 emission_rebalance 还有 {14400 - time_since_last_rebalance} 秒")
+
 # 创建单例实例
 periodic_worker = PeriodicWorker()

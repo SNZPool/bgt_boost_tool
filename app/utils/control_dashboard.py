@@ -10,6 +10,11 @@ project_path = config.PROJECT_PATH
 event_handler_file = config.EVENT_HANDLER_FILE
 dashboard_script_file = config.DASHBOARD_SCRIPT_FILE
 
+# 读取重平衡处理器相关配置
+enable_rebalance_handler = config.ENABLE_REBALANCE_HANDLER
+bgt_emission_rebalance_path = config.BGT_EMISSION_REBALANCE_PATH
+bgt_rebalance_handler_file = config.BGT_REBALANCE_HANDLER_FILE
+
 # 校验配置完整性
 if not all([project_path, event_handler_file, dashboard_script_file]):
     print("[ERROR] 请检查 .env 配置是否完整：PROJECT_PATH / EVENT_HANDLER_FILE / DASHBOARD_SCRIPT_FILE")
@@ -60,6 +65,36 @@ def call_b_event(action: str, block_number: int = None, bgt_amount: float = None
             cmd,
             cwd=project_path,
             env=env,
+            check=True  # 如果脚本返回非零状态码，抛出异常
+        )
+        print(f"[INFO] 事件处理脚本执行完成")
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] 事件处理脚本执行失败，返回码: {e.returncode}")
+        raise
+
+# === 调用 R 的事件处理函数 ===
+def call_r_event(action: str):
+    # 检查是否启用了重平衡处理器
+    enable_rebalance_handler = config.ENABLE_REBALANCE_HANDLER
+    bgt_emission_rebalance_path = config.BGT_EMISSION_REBALANCE_PATH
+    bgt_rebalance_handler_file = config.BGT_REBALANCE_HANDLER_FILE
+    
+    # 验证必要的配置
+    if enable_rebalance_handler and (not bgt_emission_rebalance_path or not bgt_rebalance_handler_file):
+        print("[WARN] 重平衡处理器已启用，但缺少必要的配置路径")
+        return
+    
+    if enable_rebalance_handler == False:
+        print(f"[WARN] 重平衡处理器未启用，跳过调用")
+        return
+    
+    cmd = ["python3", bgt_rebalance_handler_file]
+    print(f"[INFO] 调用事件处理脚本：{' '.join(cmd)} (cwd={bgt_emission_rebalance_path})")
+    try:
+        # 使用subprocess.run等待脚本执行完成，实时显示输出
+        result = subprocess.run(
+            cmd,
+            cwd=bgt_emission_rebalance_path,
             check=True  # 如果脚本返回非零状态码，抛出异常
         )
         print(f"[INFO] 事件处理脚本执行完成")
@@ -121,6 +156,8 @@ def handle_event(action: str, block_number: int = None, bgt_amount: float = None
     """
     if action == "claim_incentive" or action == "distribute_incentive" or action == "distribute_honey":
         call_b_event(action)
+    elif action == "emission_rebalance":
+        call_r_event(action)
     else:
         call_b_event(action, block_number, bgt_amount, account)
         restart_dashboard()
