@@ -93,7 +93,6 @@ class PeriodicWorker:
             if self.boost_manager.can_activate_boost():
                 logging.info("[OBSERVATION] Conditions met for activate boost")
                 print("[OBSERVATION] Conditions met for activate boost", flush=True)     
-            return
 
         # 1. 执行Queue Boost（仅当队列为空时）
         if queued_balance == 0 and free_balance > 0:
@@ -101,7 +100,6 @@ class PeriodicWorker:
             if tx_hash:
                 logging.info(f"✅ Queued Boost: {tx_hash.hex()}")
                 print(f"✅ queue_boost: {tx_hash.hex()}", flush=True)
-            return
 
         # 2. 当条件满足时执行Activate Boost
         if self.boost_manager.can_activate_boost():
@@ -193,7 +191,6 @@ class PeriodicWorker:
                 except Exception as e:
                     logging.error(f"❌ Failed to claim reward: {e}")
                     print(f"❌ Failed to claim reward: {e}", flush=True)
-            return
 
         # 3. 调用 handle_event("distribute_honey")
         # 被调用端允许周期调用，当不满足条件时直接跳过
@@ -227,7 +224,6 @@ class PeriodicWorker:
         else:
             # 如果未到检查时间，则跳过此部分
             logging.debug(f"距离下次激励检查还有 {86400 - time_since_last_check} 秒")
-            return
 
         # 5. 调用 handle_event("distribute_incentive")
         # 被调用端允许周期调用，当不满足条件时直接跳过
