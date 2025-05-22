@@ -101,13 +101,6 @@ class PeriodicWorker:
                 logging.info(f"✅ Queued Boost: {tx_hash.hex()}")
                 print(f"✅ queue_boost: {tx_hash.hex()}", flush=True)
 
-        # 2. 当条件满足时执行Activate Boost
-        if self.boost_manager.can_activate_boost():
-            tx_hash = self.boost_manager.activate_boost()
-            if tx_hash:
-                logging.info(f"✅ Activated Boost: {tx_hash.hex()}")
-                print(f"✅ activate_boost: {tx_hash.hex()}", flush=True)
-                
                 # 等待第一个交易确认
                 try:
                     # 修正获取web3客户端的方式 - 直接导入web3_client
@@ -125,15 +118,16 @@ class PeriodicWorker:
                         abi=self.boost_manager.bgt_contract.abi
                     )
                     
-                    # 遍历日志查找ActivateBoost事件
+                    activate_boost_delay = self.boost_manager.bgt_contract.get_activate_boost_delay()
+                    # 遍历日志查找QueueBoost事件
                     for log in receipt.logs:
                         try:
                             if log['address'].lower() == contract_address.lower():
                                 # 尝试解析事件
-                                parsed_log = contract.events.ActivateBoost().process_log(log)
+                                parsed_log = contract.events.QueueBoost().process_log(log)
                                 amount = parsed_log['args']['amount']
-                                logging.info(f"💰 ActivateBoost事件amount值: {amount}")
-                                print(f"💰 ActivateBoost事件amount值: {amount}", flush=True)
+                                logging.info(f"💰 QueueBoost事件amount值: {amount}")
+                                print(f"💰 QueueBoost事件amount值: {amount}", flush=True)
 
                                 # 转换为人类可读的金额
                                 human_amount = Decimal(amount) / Decimal(10 ** 18)
@@ -142,55 +136,64 @@ class PeriodicWorker:
 
                                 # 调用事件处理函数
                                 if config.ENABLE_EVENT_HANDLER:
-                                    handle_event("active", block_number, float(human_amount))
+                                    handle_event("active", block_number+activate_boost_delay, float(human_amount))
 
                                 break  # 找到事件后退出循环
                         except Exception as e:
-                            continue  # 如果不是ActivateBoost事件，继续下一个日志
-                    
-                    # # 确认交易成功后再执行奖励获取
-                    # if receipt.status == 1:  # 1表示交易成功
-                    #     reward_tx_hash = bgt_staker_manager.claim_reward()
-                    #     if reward_tx_hash:
-                    #         logging.info(f"✅ Claimed Reward: {reward_tx_hash.hex()}")
-                    #         print(f"✅ claim_reward: {reward_tx_hash.hex()}", flush=True)
-                            
-                    #         # 等待奖励交易确认并获取区块高度
-                    #         try:
-                    #             # 使用正确的web3_client
-                    #             reward_receipt = web3_client.w3.eth.wait_for_transaction_receipt(reward_tx_hash, timeout=120)
-                                
-                    #             # 获取奖励交易区块高度
-                    #             reward_block_number = reward_receipt.blockNumber
-                    #             logging.info(f"📦 奖励交易区块高度: {reward_block_number}")
-                    #             print(f"📦 奖励交易区块高度: {reward_block_number}", flush=True)
-                                
-                    #             # 修正获取staker合约相关信息的方式
-                    #             staker_contract_address = bgt_staker_manager.contract.address
-                    #             staker_contract = web3_client.w3.eth.contract(
-                    #                 address=staker_contract_address, 
-                    #                 abi=bgt_staker_manager.contract.abi
-                    #             )
-                                
-                    #             # 遍历日志查找RewardPaid事件
-                    #             for log in reward_receipt.logs:
-                    #                 try:
-                    #                     if log['address'].lower() == staker_contract_address.lower():
-                    #                         # 尝试解析RewardPaid事件
-                    #                         parsed_log = staker_contract.events.RewardPaid().process_log(log)
-                    #                         reward_amount = parsed_log['args']['reward']
-                    #                         logging.info(f"💰 RewardPaid事件reward值: {reward_amount}")
-                    #                         print(f"💰 RewardPaid事件reward值: {reward_amount}", flush=True)
-                    #                         break  # 找到事件后退出循环
-                    #                 except Exception as e:
-                    #                     continue  # 如果不是RewardPaid事件，继续下一个日志
-                            
-                    #         except Exception as e:
-                    #             logging.error(f"❌ 获取奖励交易信息失败: {e}")
-                    #             print(f"❌ 获取奖励交易信息失败: {e}", flush=True)
+                            continue  # 如果不是QueueBoost事件，继续下一个日志
                 except Exception as e:
                     logging.error(f"❌ Failed to claim reward: {e}")
                     print(f"❌ Failed to claim reward: {e}", flush=True)
+
+        # # 2. 当条件满足时执行Activate Boost
+        # if self.boost_manager.can_activate_boost():
+        #     tx_hash = self.boost_manager.activate_boost()
+        #     if tx_hash:
+        #         logging.info(f"✅ Activated Boost: {tx_hash.hex()}")
+        #         print(f"✅ activate_boost: {tx_hash.hex()}", flush=True)
+                
+        #         # 等待第一个交易确认
+        #         try:
+        #             # 修正获取web3客户端的方式 - 直接导入web3_client
+        #             receipt = web3_client.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+                    
+        #             # 获取交易区块高度
+        #             block_number = receipt.blockNumber
+        #             logging.info(f"📦 交易区块高度: {block_number}")
+        #             print(f"📦 交易区块高度: {block_number}", flush=True)
+                    
+        #             # 修正获取合约相关信息的方式
+        #             contract_address = self.boost_manager.bgt_contract.address
+        #             contract = web3_client.w3.eth.contract(
+        #                 address=contract_address, 
+        #                 abi=self.boost_manager.bgt_contract.abi
+        #             )
+                    
+        #             # 遍历日志查找ActivateBoost事件
+        #             for log in receipt.logs:
+        #                 try:
+        #                     if log['address'].lower() == contract_address.lower():
+        #                         # 尝试解析事件
+        #                         parsed_log = contract.events.ActivateBoost().process_log(log)
+        #                         amount = parsed_log['args']['amount']
+        #                         logging.info(f"💰 ActivateBoost事件amount值: {amount}")
+        #                         print(f"💰 ActivateBoost事件amount值: {amount}", flush=True)
+
+        #                         # 转换为人类可读的金额
+        #                         human_amount = Decimal(amount) / Decimal(10 ** 18)
+        #                         logging.info(f"💰 转换后金额: {human_amount}")
+        #                         print(f"💰 转换后金额: {human_amount}", flush=True)
+
+        #                         # 调用事件处理函数
+        #                         if config.ENABLE_EVENT_HANDLER:
+        #                             handle_event("active", block_number, float(human_amount))
+
+        #                         break  # 找到事件后退出循环
+        #                 except Exception as e:
+        #                     continue  # 如果不是ActivateBoost事件，继续下一个日志
+        #         except Exception as e:
+        #             logging.error(f"❌ Failed to claim reward: {e}")
+        #             print(f"❌ Failed to claim reward: {e}", flush=True)
 
         # 3. 调用 handle_event("distribute_honey")
         # 被调用端允许周期调用，当不满足条件时直接跳过
