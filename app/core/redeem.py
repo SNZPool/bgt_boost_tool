@@ -89,7 +89,8 @@ class RedeemManager:
                 print(f"✅ Task completed: {task_id}", flush=True)
 
                 # ✅ 将 raw amount 转为 float/decimal（除以 1e18），然后触发 drop event
-                human_amount = Decimal(amount) / Decimal(10 ** 18)
+                # human_amount = Decimal(amount) / Decimal(10 ** 18)
+                human_amount = Decimal(amount)
                 if config.ENABLE_EVENT_HANDLER:
                     print(f"🌀 调用 handle_event: drop, block {block_number}, amount {human_amount}, receiver {receiver}")
                     handle_event("drop", block_number, float(human_amount), account=receiver)
