@@ -76,8 +76,8 @@ class PeriodicWorker:
         """处理Boost任务"""
         # 检查是否有未完成的任务
         if task_processor.has_active_tasks():
-            logging.info("有未完成的任务正在进行中，暂停Boost流程")
-            print("有未完成的任务正在进行中，暂停Boost流程", flush=True)
+            logging.info("有未完成的提取任务正在进行中，暂停周期任务")
+            print("有未完成的提取任务正在进行中，暂停周期任务", flush=True)
             return
             
         bgt_info = self.boost_manager.get_bgt_info()
@@ -95,55 +95,73 @@ class PeriodicWorker:
                 print("[OBSERVATION] Conditions met for activate boost", flush=True)     
 
         # 1. 执行Queue Boost（仅当队列为空时）
-        if queued_balance == 0 and free_balance > 0:
-            tx_hash = self.boost_manager.queue_boost()
-            if tx_hash:
-                logging.info(f"✅ Queued Boost: {tx_hash.hex()}")
-                print(f"✅ queue_boost: {tx_hash.hex()}", flush=True)
+        if not hasattr(self, '_last_queue_boost_time'):
+            self._last_queue_boost_time = 0
 
-                # 等待第一个交易确认
-                try:
-                    # 修正获取web3客户端的方式 - 直接导入web3_client
-                    receipt = web3_client.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
-                    
-                    # 获取交易区块高度
-                    block_number = receipt.blockNumber
-                    logging.info(f"📦 交易区块高度: {block_number}")
-                    print(f"📦 交易区块高度: {block_number}", flush=True)
-                    
-                    # 修正获取合约相关信息的方式
-                    contract_address = self.boost_manager.bgt_contract.address
-                    contract = web3_client.w3.eth.contract(
-                        address=contract_address, 
-                        abi=self.boost_manager.bgt_contract.abi
-                    )
-                    
-                    activate_boost_delay = self.boost_manager.bgt_contract.get_activate_boost_delay()
-                    # 遍历日志查找QueueBoost事件
-                    for log in receipt.logs:
-                        try:
-                            if log['address'].lower() == contract_address.lower():
-                                # 尝试解析事件
-                                parsed_log = contract.events.QueueBoost().process_log(log)
-                                amount = parsed_log['args']['amount']
-                                logging.info(f"💰 QueueBoost事件amount值: {amount}")
-                                print(f"💰 QueueBoost事件amount值: {amount}", flush=True)
+        # 计算距离上次执行的时间（秒）
+        current_time = time.time()
+        time_since_last_queue_boost= current_time - self._last_queue_boost_time
 
-                                # 转换为人类可读的金额
-                                human_amount = Decimal(amount) / Decimal(10 ** 18)
-                                logging.info(f"💰 转换后金额: {human_amount}")
-                                print(f"💰 转换后金额: {human_amount}", flush=True)
+        # 检查是否已经过了8小时（28800秒）
+        if time_since_last_queue_boost >= 28800:  # 每8小时执行一次
+            logging.info("开始执行 queue_boost")
+            print("开始执行 queue_boost", flush=True)
+            
+            if queued_balance == 0 and free_balance > 0:
+                tx_hash = self.boost_manager.queue_boost()
+                if tx_hash:
+                    logging.info(f"✅ Queued Boost: {tx_hash.hex()}")
+                    print(f"✅ queue_boost: {tx_hash.hex()}", flush=True)
 
-                                # 调用事件处理函数
-                                if config.ENABLE_EVENT_HANDLER:
-                                    handle_event("active", block_number+activate_boost_delay, float(human_amount))
+                    # 等待第一个交易确认
+                    try:
+                        # 修正获取web3客户端的方式 - 直接导入web3_client
+                        receipt = web3_client.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+                        
+                        # 获取交易区块高度
+                        block_number = receipt.blockNumber
+                        logging.info(f"📦 交易区块高度: {block_number}")
+                        print(f"📦 交易区块高度: {block_number}", flush=True)
+                        
+                        # 修正获取合约相关信息的方式
+                        contract_address = self.boost_manager.bgt_contract.address
+                        contract = web3_client.w3.eth.contract(
+                            address=contract_address, 
+                            abi=self.boost_manager.bgt_contract.abi
+                        )
+                        
+                        activate_boost_delay = self.boost_manager.bgt_contract.get_activate_boost_delay()
+                        # 遍历日志查找QueueBoost事件
+                        for log in receipt.logs:
+                            try:
+                                if log['address'].lower() == contract_address.lower():
+                                    # 尝试解析事件
+                                    parsed_log = contract.events.QueueBoost().process_log(log)
+                                    amount = parsed_log['args']['amount']
+                                    logging.info(f"💰 QueueBoost事件amount值: {amount}")
+                                    print(f"💰 QueueBoost事件amount值: {amount}", flush=True)
 
-                                break  # 找到事件后退出循环
-                        except Exception as e:
-                            continue  # 如果不是QueueBoost事件，继续下一个日志
-                except Exception as e:
-                    logging.error(f"❌ Failed to claim reward: {e}")
-                    print(f"❌ Failed to claim reward: {e}", flush=True)
+                                    # 转换为人类可读的金额
+                                    human_amount = Decimal(amount) / Decimal(10 ** 18)
+                                    logging.info(f"💰 转换后金额: {human_amount}")
+                                    print(f"💰 转换后金额: {human_amount}", flush=True)
+
+                                    # 调用事件处理函数
+                                    if config.ENABLE_EVENT_HANDLER:
+                                        handle_event("active", block_number+activate_boost_delay, float(human_amount))
+
+                                    break  # 找到事件后退出循环
+                            except Exception as e:
+                                continue  # 如果不是QueueBoost事件，继续下一个日志
+                    except Exception as e:
+                        logging.error(f"❌ Failed to claim reward: {e}")
+                        print(f"❌ Failed to claim reward: {e}", flush=True)
+            
+            # 更新上次执行时间
+            self._last_queue_boost_time = current_time
+        else:
+            logging.info(f"距离下次 queue_boost 还有 {28800 - time_since_last_queue_boost} 秒")
+
 
         # # 2. 当条件满足时执行Activate Boost
         # if self.boost_manager.can_activate_boost():
